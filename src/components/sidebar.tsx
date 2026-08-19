@@ -20,6 +20,7 @@ function Icon({ name }: { name: string }) {
     note: "M6 3h9l5 5v13H6zM15 3v5h5M9 13h7M9 17h5",
     task: "M9 5h10M9 12h10M9 19h10M4 5l1 1 2-2M4 12l1 1 2-2M4 19l1 1 2-2",
     chart: "M4 20V10M10 20V4M16 20v-7M22 20H2",
+    history: "M12 8v5l3 2M3 12a9 9 0 1 0 3-6.7M3 4v4h4",
   };
   return (
     <svg

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { assertModule } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
 
 export type ActionState = { error?: string; success?: string };
 
@@ -23,7 +24,7 @@ export async function createAcademicYear(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await assertModule("academic");
+  const actor = await assertModule("academic");
 
   const parsed = yearSchema.safeParse({
     name: formData.get("name"),
@@ -40,7 +41,7 @@ export async function createAcademicYear(
   if (existing) return { error: "An academic year with that name already exists" };
 
   const isFirst = (await prisma.academicYear.count()) === 0;
-  await prisma.academicYear.create({
+  const created = await prisma.academicYear.create({
     data: {
       name: parsed.data.name,
       startDate: new Date(`${parsed.data.startDate}T00:00:00.000Z`),
@@ -49,19 +50,33 @@ export async function createAcademicYear(
     },
   });
 
+  await recordAudit(actor, {
+    action: "CREATE",
+    entity: "year",
+    entityId: created.id,
+    summary: `Created academic year ${parsed.data.name}`,
+  });
+
   revalidatePath("/academic");
   return { success: `${parsed.data.name} was created` };
 }
 
 export async function setCurrentYear(formData: FormData) {
-  await assertModule("academic");
+  const actor = await assertModule("academic");
   const id = String(formData.get("id") ?? "");
   if (!id) return;
 
-  await prisma.$transaction([
+  const [, year] = await prisma.$transaction([
     prisma.academicYear.updateMany({ data: { isCurrent: false } }),
     prisma.academicYear.update({ where: { id }, data: { isCurrent: true } }),
   ]);
+
+  await recordAudit(actor, {
+    action: "UPDATE",
+    entity: "year",
+    entityId: id,
+    summary: `Made ${year.name} the current academic year`,
+  });
 
   revalidatePath("/academic");
   revalidatePath("/dashboard");
@@ -69,7 +84,7 @@ export async function setCurrentYear(formData: FormData) {
 }
 
 export async function deleteAcademicYear(formData: FormData) {
-  await assertModule("academic");
+  const actor = await assertModule("academic");
   const id = String(formData.get("id") ?? "");
   if (!id) return;
 
@@ -81,6 +96,12 @@ export async function deleteAcademicYear(formData: FormData) {
   if (!year || year.isCurrent || year._count.classes > 0) return;
 
   await prisma.academicYear.delete({ where: { id } });
+  await recordAudit(actor, {
+    action: "DELETE",
+    entity: "year",
+    entityId: id,
+    summary: `Deleted academic year ${year.name}`,
+  });
   revalidatePath("/academic");
 }
 
@@ -99,7 +120,7 @@ export async function createTerm(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await assertModule("academic");
+  const actor = await assertModule("academic");
 
   const parsed = termSchema.safeParse({
     academicYearId: formData.get("academicYearId"),
@@ -119,7 +140,7 @@ export async function createTerm(
   });
   if (clash) return { error: "That year already has a term with this name" };
 
-  await prisma.term.create({
+  const term = await prisma.term.create({
     data: {
       academicYearId: parsed.data.academicYearId,
       name: parsed.data.name,
@@ -128,14 +149,27 @@ export async function createTerm(
     },
   });
 
+  await recordAudit(actor, {
+    action: "CREATE",
+    entity: "term",
+    entityId: term.id,
+    summary: `Added ${parsed.data.name} (${parsed.data.startDate} → ${parsed.data.endDate})`,
+  });
+
   revalidatePath("/academic");
   return { success: `${parsed.data.name} was added` };
 }
 
 export async function deleteTerm(formData: FormData) {
-  await assertModule("academic");
+  const actor = await assertModule("academic");
   const id = String(formData.get("id") ?? "");
   if (!id) return;
-  await prisma.term.delete({ where: { id } });
+  const term = await prisma.term.delete({ where: { id } });
+  await recordAudit(actor, {
+    action: "DELETE",
+    entity: "term",
+    entityId: id,
+    summary: `Deleted term ${term.name}`,
+  });
   revalidatePath("/academic");
 }

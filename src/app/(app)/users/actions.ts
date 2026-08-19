@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { assertModule } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
 import { ROLES } from "@/lib/constants";
 
 export type ActionState = { error?: string; success?: string };
@@ -21,7 +22,7 @@ export async function createUser(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await assertModule("users");
+  const actor = await assertModule("users");
 
   const parsed = userSchema
     .extend({ password: z.string().min(8, "Password must be at least 8 characters") })
@@ -43,12 +44,19 @@ export async function createUser(
   if (existing) return { error: "That email address is already in use" };
 
   const { password, phone, ...rest } = parsed.data;
-  await prisma.user.create({
+  const created = await prisma.user.create({
     data: {
       ...rest,
       phone: phone || null,
       passwordHash: await bcrypt.hash(password, 10),
     },
+  });
+
+  await recordAudit(actor, {
+    action: "CREATE",
+    entity: "user",
+    entityId: created.id,
+    summary: `Created ${rest.role.toLowerCase()} account ${rest.firstName} ${rest.lastName} (${rest.email})`,
   });
 
   revalidatePath("/users");
@@ -59,7 +67,7 @@ export async function updateUser(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await assertModule("users");
+  const actor = await assertModule("users");
 
   const id = String(formData.get("id") ?? "");
   const parsed = userSchema.safeParse({
@@ -80,9 +88,20 @@ export async function updateUser(
   if (clash) return { error: "That email address is already in use" };
 
   const { phone, ...rest } = parsed.data;
+  const before = await prisma.user.findUnique({ where: { id } });
   await prisma.user.update({
     where: { id },
     data: { ...rest, phone: phone || null },
+  });
+
+  await recordAudit(actor, {
+    action: "UPDATE",
+    entity: "user",
+    entityId: id,
+    summary:
+      before && before.role !== rest.role
+        ? `Changed ${rest.firstName} ${rest.lastName} from ${before.role.toLowerCase()} to ${rest.role.toLowerCase()}`
+        : `Edited the account of ${rest.firstName} ${rest.lastName}`,
   });
 
   revalidatePath("/users");
@@ -104,6 +123,12 @@ export async function toggleUserActive(formData: FormData) {
     where: { id },
     data: { isActive: !user.isActive },
   });
+  await recordAudit(actor, {
+    action: "UPDATE",
+    entity: "user",
+    entityId: id,
+    summary: `${user.isActive ? "Deactivated" : "Reactivated"} ${user.firstName} ${user.lastName}`,
+  });
   revalidatePath("/users");
 }
 
@@ -111,15 +136,22 @@ export async function resetPassword(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await assertModule("users");
+  const actor = await assertModule("users");
   const id = String(formData.get("id") ?? "");
   const password = String(formData.get("password") ?? "");
   if (password.length < 8) {
     return { error: "Password must be at least 8 characters" };
   }
+  const target = await prisma.user.findUnique({ where: { id } });
   await prisma.user.update({
     where: { id },
     data: { passwordHash: await bcrypt.hash(password, 10) },
+  });
+  await recordAudit(actor, {
+    action: "RESET",
+    entity: "user",
+    entityId: id,
+    summary: `Reset the password of ${target?.firstName ?? "a user"} ${target?.lastName ?? ""}`.trim(),
   });
   revalidatePath("/users");
   return { success: "Password reset" };
@@ -129,6 +161,13 @@ export async function deleteUser(formData: FormData) {
   const actor = await assertModule("users");
   const id = String(formData.get("id") ?? "");
   if (!id || id === actor.userId) return;
+  const target = await prisma.user.findUnique({ where: { id } });
   await prisma.user.delete({ where: { id } });
+  await recordAudit(actor, {
+    action: "DELETE",
+    entity: "user",
+    entityId: id,
+    summary: `Deleted the account of ${target?.firstName ?? "a user"} ${target?.lastName ?? ""} (${target?.email ?? "unknown"})`,
+  });
   revalidatePath("/users");
 }

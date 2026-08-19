@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { assertModule } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
 import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
 
 export type ActionState = { error?: string; success?: string };
@@ -38,7 +39,7 @@ export async function createTask(
   });
   if (!assignee) return { error: "That user no longer exists" };
 
-  await prisma.task.create({
+  const created = await prisma.task.create({
     data: {
       title: parsed.data.title,
       description: parsed.data.description || null,
@@ -49,6 +50,13 @@ export async function createTask(
         : null,
       createdById: user.userId,
     },
+  });
+
+  await recordAudit(user, {
+    action: "CREATE",
+    entity: "task",
+    entityId: created.id,
+    summary: `Assigned "${parsed.data.title}" to ${assignee.firstName} ${assignee.lastName}`,
   });
 
   revalidatePath("/tasks");
@@ -73,13 +81,25 @@ export async function updateTaskStatus(formData: FormData) {
   if (!isAssignee && !user.access.tasks.edit) return;
 
   await prisma.task.update({ where: { id }, data: { status } });
+  await recordAudit(user, {
+    action: "UPDATE",
+    entity: "task",
+    entityId: id,
+    summary: `Moved "${task.title}" from ${task.status.toLowerCase()} to ${status.toLowerCase()}`,
+  });
   revalidatePath("/tasks");
 }
 
 export async function deleteTask(formData: FormData) {
-  await assertModule("tasks");
+  const actor = await assertModule("tasks");
   const id = String(formData.get("id") ?? "");
   if (!id) return;
-  await prisma.task.delete({ where: { id } });
+  const task = await prisma.task.delete({ where: { id } });
+  await recordAudit(actor, {
+    action: "DELETE",
+    entity: "task",
+    entityId: id,
+    summary: `Deleted task "${task.title}"`,
+  });
   revalidatePath("/tasks");
 }

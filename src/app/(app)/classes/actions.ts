@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { assertModule } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
 
 export type ActionState = { error?: string; success?: string };
 
@@ -19,7 +20,7 @@ export async function createClass(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await assertModule("classes");
+  const actor = await assertModule("classes");
 
   const parsed = classSchema.safeParse({
     name: formData.get("name"),
@@ -41,7 +42,16 @@ export async function createClass(
   if (clash) return { error: "That year already has a class with this name" };
 
   const { room, ...rest } = parsed.data;
-  await prisma.class.create({ data: { ...rest, room: room || null } });
+  const created = await prisma.class.create({
+    data: { ...rest, room: room || null },
+  });
+
+  await recordAudit(actor, {
+    action: "CREATE",
+    entity: "class",
+    entityId: created.id,
+    summary: `Created class ${rest.name} (${rest.level})`,
+  });
 
   revalidatePath("/classes");
   return { success: `${parsed.data.name} was created` };
@@ -51,7 +61,7 @@ export async function updateClass(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await assertModule("classes");
+  const actor = await assertModule("classes");
   const id = String(formData.get("id") ?? "");
   const parsed = classSchema.safeParse({
     name: formData.get("name"),
@@ -71,13 +81,20 @@ export async function updateClass(
     data: { ...rest, room: room || null },
   });
 
+  await recordAudit(actor, {
+    action: "UPDATE",
+    entity: "class",
+    entityId: id,
+    summary: `Edited class ${parsed.data.name}`,
+  });
+
   revalidatePath("/classes");
   revalidatePath(`/classes/${id}`);
   return { success: "Changes saved" };
 }
 
 export async function deleteClass(formData: FormData) {
-  await assertModule("classes");
+  const actor = await assertModule("classes");
   const id = String(formData.get("id") ?? "");
   if (!id) return;
 
@@ -89,5 +106,11 @@ export async function deleteClass(formData: FormData) {
   if (!klass || klass._count.students > 0) return;
 
   await prisma.class.delete({ where: { id } });
+  await recordAudit(actor, {
+    action: "DELETE",
+    entity: "class",
+    entityId: id,
+    summary: `Deleted class ${klass.name}`,
+  });
   revalidatePath("/classes");
 }

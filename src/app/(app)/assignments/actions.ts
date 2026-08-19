@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { assertModule } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
 
 export type ActionState = { error?: string; success?: string };
 
@@ -14,7 +15,7 @@ export async function saveAssignments(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await assertModule("assignments");
+  const actor = await assertModule("assignments");
 
   const userId = String(formData.get("userId") ?? "");
   const kind = String(formData.get("kind") ?? "");
@@ -48,6 +49,23 @@ export async function saveAssignments(
       ),
     ]);
   }
+
+  const names = await prisma.class.findMany({
+    where: { id: { in: classIds } },
+    select: { name: true },
+    orderBy: { name: "asc" },
+  });
+  await recordAudit(actor, {
+    action: "ASSIGN",
+    entity: "assignment",
+    entityId: userId,
+    summary:
+      `${kind === "SUPERVISOR" ? "Supervisor" : "Teacher"} ${user.firstName} ` +
+      `${user.lastName} now covers ` +
+      (names.length === 0
+        ? "no classes"
+        : names.map((c) => c.name).join(", ")),
+  });
 
   revalidatePath("/assignments");
   revalidatePath("/classes");

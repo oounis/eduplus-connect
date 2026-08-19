@@ -33,6 +33,7 @@ export const MODULES = [
   "observations",
   "tasks",
   "reports",
+  "audit",
 ] as const;
 
 export type ModuleKey = (typeof MODULES)[number];
@@ -107,6 +108,12 @@ export const MODULE_META: Record<
     href: "/reports",
     icon: "chart",
   },
+  audit: {
+    label: "History",
+    description: "Who changed what, and when",
+    href: "/audit",
+    icon: "history",
+  },
 };
 
 /// Applied on a fresh database, and used as the reset baseline in /access.
@@ -126,6 +133,7 @@ export const DEFAULT_ROLE_ACCESS: Record<
     observations: { view: true, edit: false },
     tasks: { view: true, edit: true },
     reports: { view: true, edit: false },
+    audit: { view: true, edit: false },
   },
   DEPUTY: {
     dashboard: { view: true, edit: false },

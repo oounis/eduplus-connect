@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentYear, getVisibleClassIds } from "@/lib/queries";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
 import { ActionForm, Disclosure } from "@/components/action-form";
+import ImportPanel from "./import-panel";
 import { createStudent, moveStudentToClass } from "./actions";
 
 export default async function StudentsPage({
@@ -107,6 +108,14 @@ export default async function StudentsPage({
           <Link href="/students" className="btn-secondary">Clear</Link>
         )}
       </form>
+
+      {canEdit && (
+        <div className="mb-6">
+          <Disclosure label="Import students from a CSV file">
+            <ImportPanel />
+          </Disclosure>
+        </div>
+      )}
 
       {canEdit && (
         <div className="mb-6">

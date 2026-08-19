@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { assertModule } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
 import { toDayKey } from "@/lib/dates";
 import { ATTENDANCE_STATUSES } from "@/lib/constants";
 
@@ -75,6 +76,17 @@ export async function saveAttendance(
 
   if (writes.length === 0) return { error: "No students were marked" };
   await prisma.$transaction(writes);
+
+  const klass = await prisma.class.findUnique({
+    where: { id: classId },
+    select: { name: true },
+  });
+  await recordAudit(user, {
+    action: "UPDATE",
+    entity: "attendance",
+    entityId: classId,
+    summary: `Saved the register for ${klass?.name ?? "a class"} on ${dateValue} — ${writes.length} students`,
+  });
 
   revalidatePath("/attendance");
   revalidatePath("/dashboard");

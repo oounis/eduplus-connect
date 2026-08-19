@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { assertModule } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
 import { toDayKey } from "@/lib/dates";
 import { OBSERVATION_CATEGORIES, SENTIMENTS } from "@/lib/constants";
 
@@ -98,6 +99,12 @@ export async function deleteObservation(formData: FormData) {
   if (!privileged && observation.authorId !== user.userId) return;
 
   await prisma.observation.delete({ where: { id } });
+  await recordAudit(user, {
+    action: "DELETE",
+    entity: "observation",
+    entityId: id,
+    summary: `Deleted a ${observation.sentiment.toLowerCase()} ${observation.category.toLowerCase()} observation`,
+  });
   revalidatePath("/observations");
   revalidatePath("/dashboard");
 }

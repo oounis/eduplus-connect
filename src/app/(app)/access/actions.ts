@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { assertModule } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
 import {
   DEFAULT_ROLE_ACCESS,
   MODULES,
@@ -21,7 +22,7 @@ export async function saveAccessMatrix(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await assertModule("access");
+  const actor = await assertModule("access");
 
   const updates: {
     role: Role;
@@ -64,13 +65,39 @@ export async function saveAccessMatrix(
     ),
   );
 
+  const before = await prisma.roleModuleAccess.findMany();
+  const seen = new Map(
+    before.map((row) => [`${row.role}:${row.module}`, row]),
+  );
+  const changed = updates.filter((u) => {
+    const row = seen.get(`${u.role}:${u.module}`);
+    return !row || row.canView !== u.canView || row.canEdit !== u.canEdit;
+  });
+
+  await recordAudit(actor, {
+    action: "UPDATE",
+    entity: "access",
+    summary:
+      changed.length === 0
+        ? "Saved the access matrix with no changes"
+        : `Changed ${changed.length} module ${changed.length === 1 ? "grant" : "grants"}: ` +
+          changed
+            .slice(0, 6)
+            .map(
+              (c) =>
+                `${c.role.toLowerCase()}/${c.module}=${c.canEdit ? "edit" : c.canView ? "view" : "none"}`,
+            )
+            .join(", ") +
+          (changed.length > 6 ? ` and ${changed.length - 6} more` : ""),
+  });
+
   revalidatePath("/access");
   revalidatePath("/dashboard");
   return { success: "Access rights saved" };
 }
 
 export async function resetAccessMatrix(): Promise<void> {
-  await assertModule("access");
+  const actor = await assertModule("access");
 
   await prisma.$transaction(
     ROLES.flatMap((role) =>
@@ -90,6 +117,12 @@ export async function resetAccessMatrix(): Promise<void> {
       }),
     ),
   );
+
+  await recordAudit(actor, {
+    action: "RESET",
+    entity: "access",
+    summary: "Reset every role back to the default access rights",
+  });
 
   revalidatePath("/access");
   revalidatePath("/dashboard");

@@ -228,3 +228,21 @@ model Task {
 
   @@index([assigneeId, status])
 }
+
+/// Append-only trail of who changed what. The actor's name is copied in so the
+/// history stays readable after an account is deleted.
+model AuditEvent {
+  id        String   @id @default(cuid())
+  at        DateTime @default(now())
+  actorId   String
+  actorName String
+  actorRole String
+  action    String // CREATE | UPDATE | DELETE | ASSIGN | RESET | IMPORT
+  entity    String // user | student | class | year | term | access | assignment | task | attendance | observation
+  entityId  String?
+  summary   String
+
+  @@index([at])
+  @@index([entity, at])
+  @@index([actorId])
+}

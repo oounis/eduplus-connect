@@ -207,8 +207,11 @@ async function main() {
   const csvLines = csvBody.trim().split("\r\n");
   check("student CSV downloads", csv.status() === 200 &&
     csv.headers()["content-type"].startsWith("text/csv"), csv.headers()["content-type"]);
-  check("student CSV has a row per student", csvLines.length === 89,
-    `${csvLines.length} lines including the header`);
+  const reportable = await prisma.student.count({
+    where: { isActive: true, class: { isNot: null } },
+  });
+  check("student CSV has a row per student", csvLines.length === reportable + 1,
+    `${csvLines.length} lines for ${reportable} students`);
 
   const obsCsv = await adminPage.request.get(`${BASE}/reports/export?type=observations`);
   check("observation CSV downloads", obsCsv.status() === 200);
@@ -260,6 +263,113 @@ async function main() {
   });
   check("the seed password is restored",
     await bcrypt.compare(PASSWORD, restored!.passwordHash));
+
+  // -- 9. Bulk import: preview, then write ---------------------------------
+  console.log("\nStudents: CSV import");
+  const targetClass = await prisma.class.findFirst({ where: { name: "Grade 4 - A" } });
+  const stamp = String(await prisma.student.count());
+  const goodCode = `IMP-${stamp}-1`;
+  const importCsv = [
+    "firstName,lastName,code,dateOfBirth,class,parentEmail",
+    `Yasmin,Haddad,${goodCode},2015-04-23,${targetClass!.name},parent@eduplus.school`,
+    `Omar,Belhaj,,12/09/2014,${targetClass!.name},`,
+    ",Missing,IMP-BAD-1,,,",                        // no first name
+    `Dup,Licate,${goodCode},,,`,                     // code repeated in the file
+    "Nour,Trabelsi,,,Grade 99 - Z,",                 // class does not exist
+    "Sami,Kefi,,,,ghost@nowhere.test",               // parent does not exist
+  ].join("\n");
+
+  const beforeImport = await prisma.student.count();
+  await adminPage.goto(`${BASE}/students`);
+  await adminPage.click("summary:has-text('Import students from a CSV file')");
+  await adminPage.fill('textarea[name="csv"]', importCsv);
+  await adminPage.click('button:has-text("Check the file")');
+  await adminPage.waitForSelector("text=will be skipped", { timeout: 20000 });
+
+  const readyBadges = await adminPage.locator('td .badge:has-text("ready")').count();
+  check("the preview accepts the two good rows", readyBadges === 2, `${readyBadges} ready`);
+  const stillSame = await prisma.student.count();
+  check("the preview writes nothing", stillSame === beforeImport,
+    `${beforeImport} → ${stillSame}`);
+  const reasons = await adminPage.locator("td .badge").allInnerTexts();
+  check("each bad row says why it was rejected",
+    reasons.some((r) => r.includes("first and last name")) &&
+    reasons.some((r) => r.includes("repeated")) &&
+    reasons.some((r) => r.includes("no class")) &&
+    reasons.some((r) => r.includes("no parent account")),
+    reasons.filter((r) => r !== "ready").join(" | "));
+
+  await adminPage.click('button:has-text("Import 2 students")');
+  await adminPage.waitForSelector("text=Imported 2 students", { timeout: 20000 });
+  const afterImport = await prisma.student.count();
+  check("only the good rows were written", afterImport === beforeImport + 2,
+    `${beforeImport} → ${afterImport}`);
+
+  const imported = await prisma.student.findUnique({
+    where: { code: goodCode },
+    include: { class: true, parent: true },
+  });
+  check("the imported student got their class and parent",
+    imported?.class?.name === targetClass!.name &&
+    imported?.parent?.email === "parent@eduplus.school",
+    `${imported?.class?.name} · ${imported?.parent?.email}`);
+  const omar = await prisma.student.findFirst({
+    where: { lastName: "Belhaj", firstName: "Omar" },
+    orderBy: { createdAt: "desc" },
+  });
+  check("a DD/MM/YYYY date was understood",
+    omar?.dateOfBirth?.toISOString().slice(0, 10) === "2014-09-12",
+    omar?.dateOfBirth?.toISOString().slice(0, 10) ?? "none");
+
+  // Take the two imported students back out so the suite can be re-run.
+  await prisma.student.deleteMany({
+    where: { id: { in: [imported!.id, omar!.id] } },
+  });
+  check("the imported rows were cleaned up",
+    (await prisma.student.count()) === beforeImport);
+
+  // -- 10. The history records what just happened ---------------------------
+  console.log("\nHistory: the audit trail");
+  await adminPage.goto(`${BASE}/audit`);
+  await adminPage.waitForSelector("text=Events recorded", { timeout: 20000 });
+  const importLine = await adminPage.locator("text=Imported 2 students from CSV").count();
+  check("the import is in the history", importLine > 0);
+  const registerLine = await adminPage
+    .locator("text=Saved the register for Grade 6 - B").count();
+  check("the register save is in the history", registerLine > 0);
+
+  await adminPage.goto(`${BASE}/audit?entity=student`);
+  const entities = await adminPage.locator("tbody tr td:nth-child(4)").allInnerTexts();
+  check("filtering by entity works",
+    entities.length > 0 && entities.every((e) => e.trim() === "student"),
+    `${entities.length} rows, all "student"`);
+
+  const teacherAudit = await teacherPage.goto(`${BASE}/audit`);
+  check("only an administrator sees the history",
+    teacherAudit?.url().includes("/denied") || teacherPage.url().includes("/denied"),
+    teacherPage.url());
+
+  // -- 11. Terms drive the report period ------------------------------------
+  console.log("\nReports: term periods");
+  const term = await prisma.term.findFirst({ orderBy: { startDate: "asc" } });
+  await adminPage.goto(`${BASE}/reports`);
+  await adminPage.waitForSelector("text=Quick period", { timeout: 20000 });
+  const termChip = adminPage.locator(`a.badge:has-text("${term!.name}")`).first();
+  check("each term is offered as a period", (await termChip.count()) > 0, term!.name);
+  await Promise.all([
+    adminPage.waitForURL(`**/reports?from=${term!.startDate.toISOString().slice(0, 10)}*`,
+      { timeout: 20000 }),
+    termChip.click(),
+  ]);
+  await adminPage.waitForSelector("text=Students by absence", { timeout: 20000 });
+  const heading = await adminPage
+    .locator('h1:has-text("Reports")')
+    .locator("xpath=following-sibling::p")
+    .innerText();
+  const expected = term!.startDate.toLocaleDateString("en-GB",
+    { weekday: "short", day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
+  check("choosing a term sets the report range", heading.includes(expected),
+    heading.replace(/\n/g, " "));
 
   await browser.close();
   await prisma.$disconnect();

@@ -102,6 +102,7 @@ async function main() {
   await prisma.class.deleteMany();
   await prisma.term.deleteMany();
   await prisma.academicYear.deleteMany();
+  await prisma.auditEvent.deleteMany();
   await prisma.userModuleAccess.deleteMany();
   await prisma.roleModuleAccess.deleteMany();
   await prisma.user.deleteMany();

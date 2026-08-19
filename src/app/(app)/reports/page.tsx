@@ -7,7 +7,9 @@ import {
   getObservationMatrix,
   getStudentReport,
 } from "@/lib/queries";
-import { formatDate, formatShortDate } from "@/lib/dates";
+import { addDays, formatDate, formatShortDate, today, toISODate } from "@/lib/dates";
+import { getCurrentYear } from "@/lib/queries";
+import { prisma } from "@/lib/db";
 import {
   AttendanceBar,
   Card,
@@ -29,6 +31,15 @@ export default async function ReportsPage({
 }) {
   const user = await requireModule("reports");
   const scope = await resolveReportScope(user, await searchParams);
+
+  // Terms give the year its real shape — offer them as one-click periods.
+  const year = await getCurrentYear();
+  const terms = year
+    ? await prisma.term.findMany({
+        where: { academicYearId: year.id },
+        orderBy: { startDate: "asc" },
+      })
+    : [];
 
   const [classRows, studentRows, matrix, trend] = await Promise.all([
     getClassReport(scope, scope.classIds),
@@ -126,6 +137,53 @@ export default async function ReportsPage({
         <button type="submit" className="btn-secondary">Apply</button>
         <Link href="/reports" className="btn-secondary">Reset</Link>
       </form>
+
+      {/* One-click periods — the terms of the current year, plus the usual two */}
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium uppercase tracking-wide text-ink-500">
+          Quick period
+        </span>
+        {[
+          { label: "Last 7 days", from: toISODate(addDays(today(), -6)), to: toISODate(today()) },
+          { label: "Last 30 days", from: toISODate(addDays(today(), -29)), to: toISODate(today()) },
+          ...terms.map((term) => ({
+            label: term.name,
+            from: toISODate(term.startDate),
+            to: toISODate(term.endDate),
+          })),
+          ...(year
+            ? [{
+                label: year.name,
+                from: toISODate(year.startDate),
+                to: toISODate(year.endDate),
+              }]
+            : []),
+        ].map((period) => {
+          const active =
+            period.from === scope.fromISO && period.to === scope.toISO;
+          const classParam = scope.selectedClassId
+            ? `&classId=${scope.selectedClassId}`
+            : "";
+          return (
+            <Link
+              key={period.label}
+              href={`/reports?from=${period.from}&to=${period.to}${classParam}`}
+              className={`badge ${
+                active
+                  ? "bg-brand-50 text-brand-700"
+                  : "bg-ink-100 text-ink-600 hover:text-ink-900"
+              }`}
+            >
+              {period.label}
+            </Link>
+          );
+        })}
+        {terms.length === 0 && (
+          <span className="text-xs text-ink-400">
+            Add terms under Academic years to get one-click term reports.
+          </span>
+        )}
+      </div>
 
       {scope.classes.length === 0 ? (
         <Card>

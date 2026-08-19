@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { assertModule } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
 
 export type ActionState = { error?: string; success?: string };
 
@@ -29,7 +30,7 @@ export async function createStudent(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await assertModule("students");
+  const actor = await assertModule("students");
 
   const parsed = studentSchema.safeParse({
     firstName: formData.get("firstName"),
@@ -47,7 +48,7 @@ export async function createStudent(
   const clash = await prisma.student.findUnique({ where: { code } });
   if (clash) return { error: `Student code ${code} is already in use` };
 
-  await prisma.student.create({
+  const created = await prisma.student.create({
     data: {
       code,
       firstName: parsed.data.firstName,
@@ -60,6 +61,13 @@ export async function createStudent(
     },
   });
 
+  await recordAudit(actor, {
+    action: "CREATE",
+    entity: "student",
+    entityId: created.id,
+    summary: `Enrolled ${parsed.data.firstName} ${parsed.data.lastName} (${code})`,
+  });
+
   revalidatePath("/students");
   revalidatePath("/classes");
   return { success: `${parsed.data.firstName} ${parsed.data.lastName} was added` };
@@ -69,7 +77,7 @@ export async function updateStudent(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await assertModule("students");
+  const actor = await assertModule("students");
   const id = String(formData.get("id") ?? "");
   if (!id) return { error: "Missing student" };
 
@@ -106,6 +114,13 @@ export async function updateStudent(
     },
   });
 
+  await recordAudit(actor, {
+    action: "UPDATE",
+    entity: "student",
+    entityId: id,
+    summary: `Edited the record of ${parsed.data.firstName} ${parsed.data.lastName}`,
+  });
+
   revalidatePath("/students");
   revalidatePath("/classes");
   return { success: "Changes saved" };
@@ -113,24 +128,38 @@ export async function updateStudent(
 
 /** Quick class move straight from the students table. */
 export async function moveStudentToClass(formData: FormData) {
-  await assertModule("students");
+  const actor = await assertModule("students");
   const id = String(formData.get("id") ?? "");
   const classId = String(formData.get("classId") ?? "");
   if (!id) return;
 
-  await prisma.student.update({
+  const student = await prisma.student.update({
     where: { id },
     data: { classId: classId || null },
+    include: { class: { select: { name: true } } },
+  });
+  await recordAudit(actor, {
+    action: "UPDATE",
+    entity: "student",
+    entityId: id,
+    summary: `Moved ${student.firstName} ${student.lastName} to ${student.class?.name ?? "no class"}`,
   });
   revalidatePath("/students");
   revalidatePath("/classes");
 }
 
 export async function deleteStudent(formData: FormData) {
-  await assertModule("students");
+  const actor = await assertModule("students");
   const id = String(formData.get("id") ?? "");
   if (!id) return;
+  const student = await prisma.student.findUnique({ where: { id } });
   await prisma.student.delete({ where: { id } });
+  await recordAudit(actor, {
+    action: "DELETE",
+    entity: "student",
+    entityId: id,
+    summary: `Removed ${student?.firstName ?? "a student"} ${student?.lastName ?? ""} (${student?.code ?? "unknown"})`,
+  });
   revalidatePath("/students");
   revalidatePath("/classes");
 }

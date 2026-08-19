@@ -23,7 +23,7 @@ All seeded accounts share the password in `SEED_PASSWORD` (`Passw0rd!` by defaul
 
 | Role | Email | Sees |
 | --- | --- | --- |
-| Administrator | `admin@eduplus.school` | Everything: users, access rights, academic years, classes, students, assignments, reports |
+| Administrator | `admin@eduplus.school` | Everything: users, access rights, academic years, classes, students, assignments, reports, history |
 | Deputy | `deputy@eduplus.school` | Dashboard, classes, students, attendance, observations, staff tasks (edit) |
 | Staff | `staff@eduplus.school` | Same views as the deputy, read-only |
 | Supervisor | `supervisor@eduplus.school`, `supervisor2@…` | Their assigned classes — takes the daily register |
@@ -57,6 +57,18 @@ and observations so the dashboards are not empty.
   their own classes.
 - **Every user manages their own account** at `/profile`: phone number,
   password change, and a read-out of exactly which modules they hold.
+- **Students arrive in bulk** — paste a CSV on `/students` and the first submit
+  only *reports* what would happen: which rows are ready, and for each rejected
+  row why (missing name, duplicate code, unknown class, unknown parent). Nothing
+  is written until the second submit, and a bad row is skipped rather than
+  guessed at. Blank codes are generated; dates take `YYYY-MM-DD` or `DD/MM/YYYY`.
+- **Terms drive the reports** — every term of the current year is a one-click
+  period on `/reports`, alongside last 7 / last 30 days and the whole year.
+- **Nothing changes without a trace** — `/audit` (administrator only) records
+  who did what to accounts, access rights, years, terms, classes, students,
+  assignments, tasks, registers and deleted observations, filterable by entity
+  and by person. The actor's name is copied into each row, so history stays
+  readable after an account is deleted.
 
 Access is enforced in three places: the middleware (signed-in or not), each page
 (`requireModule`), and each server action (`assertModule`).
@@ -70,12 +82,16 @@ npx tsx scripts/dev-token.ts <email>   # mint a session cookie for curl
 npm run db:sync-access           # grant a newly added module on an existing DB
 ```
 
-`scripts/ui-test.ts` (26 checks) logs in as a supervisor and saves a register,
+`scripts/ui-test.ts` (39 checks) logs in as a supervisor and saves a register,
 checks a supervisor cannot reach an unassigned class, checks staff see every
 register read-only, adds an observation as a teacher, confirms the admin
 dashboard reflects both, proves the student profile is closed to the wrong
 parent and the wrong teacher, downloads each CSV export and checks a parent is
-refused one, and changes a password and signs in again with it.
+refused one, changes a password and signs in again with it, imports a CSV of
+six rows and checks the four bad ones are each rejected for the right reason,
+confirms the import and the register save both appear in the history and that a
+teacher cannot open it, and clicks a term chip to check it sets the report
+range. It cleans up after itself, so it can be run repeatedly.
 
 After adding a module to `MODULES`, run `npm run db:sync-access` — it grants the
 defaults for the new module without touching the rights an administrator has
@@ -85,6 +101,7 @@ already customised in `/access`.
 
 ```
 prisma/schema.prisma      data model (SQLite; enums are strings + app constants)
+src/lib/audit.ts          append-only history writer used by every mutation
 prisma/seed.ts            demo school
 src/lib/constants.ts      roles, modules, default role→module grants
 src/lib/auth.ts           session → user → resolved module rights
@@ -92,5 +109,6 @@ src/lib/queries.ts        shared reads (visible classes, day/week summaries)
 src/lib/reports.ts        report scope (range + allowed classes) and CSV writer
 src/app/(app)/            the signed-in application, one folder per module
 src/app/(app)/reports/export/  CSV route handler
+src/app/(app)/students/import-actions.ts  CSV parse, dry run, then write
 src/app/login/            sign-in
 ```
