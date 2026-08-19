@@ -1,0 +1,27 @@
+node_modules/
+.next/
+out/
+build/
+.DS_Store
+*.pem
+
+# env
+.env
+.env.local
+.env*.local
+
+# database (SQLite dev)
+prisma/dev.db
+prisma/dev.db-journal
+prisma/*.db
+prisma/migrations/dev/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts

@@ -1,0 +1,230 @@
+// EduPlus Connect — school management platform
+// SQLite for local development. Enums are modelled as String + app-level
+// constants because SQLite does not support native enums in Prisma.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Identity & access
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  phone        String?
+  role         String // ADMIN | DEPUTY | STAFF | SUPERVISOR | TEACHER | PARENT | STUDENT
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // A staff member may be granted per-user overrides on top of their role.
+  moduleOverrides UserModuleAccess[]
+
+  // Supervisor / teacher assignments for the current academic year
+  supervisedClasses ClassSupervisor[]
+  taughtClasses     ClassTeacher[]
+
+  // A PARENT user is linked to one or more students
+  children Student[] @relation("ParentChildren")
+  // A STUDENT user is linked to exactly one student record
+  studentProfile Student? @relation("StudentAccount")
+
+  attendanceRecorded  Attendance[]  @relation("AttendanceRecorder")
+  observationsWritten Observation[] @relation("ObservationAuthor")
+
+  tasksAssigned Task[] @relation("TaskAssignee")
+  tasksCreated  Task[] @relation("TaskCreator")
+
+  @@index([role])
+}
+
+/// Access rights to modules, granted per role. Editable by ADMIN only.
+model RoleModuleAccess {
+  id      String  @id @default(cuid())
+  role    String
+  module  String
+  canView Boolean @default(false)
+  canEdit Boolean @default(false)
+
+  @@unique([role, module])
+  @@index([role])
+}
+
+/// Per-user override that wins over the role grant (null = inherit role).
+model UserModuleAccess {
+  id      String   @id @default(cuid())
+  userId  String
+  module  String
+  canView Boolean?
+  canEdit Boolean?
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, module])
+}
+
+// ---------------------------------------------------------------------------
+// Academic structure
+// ---------------------------------------------------------------------------
+
+model AcademicYear {
+  id        String   @id @default(cuid())
+  name      String   @unique // e.g. "2025-2026"
+  startDate DateTime
+  endDate   DateTime
+  isCurrent Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  terms   Term[]
+  classes Class[]
+}
+
+model Term {
+  id             String   @id @default(cuid())
+  name           String // e.g. "Term 1"
+  startDate      DateTime
+  endDate        DateTime
+  academicYearId String
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+
+  @@unique([academicYearId, name])
+}
+
+model Class {
+  id             String   @id @default(cuid())
+  name           String // e.g. "Grade 5 - A"
+  level          String // e.g. "Grade 5"
+  room           String?
+  capacity       Int      @default(30)
+  academicYearId String
+  createdAt      DateTime @default(now())
+
+  academicYear AcademicYear      @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  students     Student[]
+  supervisors  ClassSupervisor[]
+  teachers     ClassTeacher[]
+  attendance   Attendance[]
+  observations Observation[]
+
+  @@unique([academicYearId, name])
+}
+
+model Student {
+  id          String    @id @default(cuid())
+  code        String    @unique // school registration number
+  firstName   String
+  lastName    String
+  dateOfBirth DateTime?
+  isActive    Boolean   @default(true)
+  classId     String?
+  parentId    String?
+  userId      String?   @unique
+  createdAt   DateTime  @default(now())
+
+  class        Class?        @relation(fields: [classId], references: [id], onDelete: SetNull)
+  parent       User?         @relation("ParentChildren", fields: [parentId], references: [id], onDelete: SetNull)
+  user         User?         @relation("StudentAccount", fields: [userId], references: [id], onDelete: SetNull)
+  attendance   Attendance[]
+  observations Observation[]
+
+  @@index([classId])
+}
+
+/// Admin assigns many classes to every supervisor.
+model ClassSupervisor {
+  id      String @id @default(cuid())
+  classId String
+  userId  String
+  class   Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, userId])
+  @@index([userId])
+}
+
+/// Admin assigns many classes to every teacher.
+model ClassTeacher {
+  id      String  @id @default(cuid())
+  classId String
+  userId  String
+  subject String?
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, userId])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Daily operations
+// ---------------------------------------------------------------------------
+
+/// One row per student per day, written by the class supervisor.
+model Attendance {
+  id           String   @id @default(cuid())
+  date         DateTime // normalised to 00:00 UTC of the school day
+  status       String // PRESENT | ABSENT | LATE | EXCUSED
+  note         String?
+  studentId    String
+  classId      String
+  recordedById String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  student    Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class      Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  recordedBy User    @relation("AttendanceRecorder", fields: [recordedById], references: [id])
+
+  @@unique([studentId, date])
+  @@index([classId, date])
+  @@index([date])
+}
+
+/// Free-list of daily observations written by teachers.
+model Observation {
+  id        String   @id @default(cuid())
+  date      DateTime // normalised to 00:00 UTC of the school day
+  category  String // BEHAVIOR | PARTICIPATION | HOMEWORK | ACADEMIC | OTHER
+  sentiment String // POSITIVE | NEUTRAL | CONCERN
+  note      String
+  studentId String
+  classId   String
+  authorId  String
+  createdAt DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  author  User    @relation("ObservationAuthor", fields: [authorId], references: [id])
+
+  @@index([classId, date])
+  @@index([date])
+  @@index([studentId])
+}
+
+/// Deputy manages staff tasks.
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  status      String    @default("TODO") // TODO | IN_PROGRESS | DONE | CANCELLED
+  priority    String    @default("MEDIUM") // LOW | MEDIUM | HIGH
+  dueDate     DateTime?
+  assigneeId  String
+  createdById String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  assignee  User @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: Cascade)
+  createdBy User @relation("TaskCreator", fields: [createdById], references: [id])
+
+  @@index([assigneeId, status])
+}
