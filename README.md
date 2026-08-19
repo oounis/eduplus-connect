@@ -10,12 +10,48 @@ Tailwind CSS 4 · `jose` JWT session cookie · bcrypt password hashes.
 
 ## Run it locally
 
+Local development needs no network and no Turso account — it uses the SQLite
+file in `prisma/`. Setting `TURSO_DATABASE_URL` is what switches the same code
+to the hosted database.
+
 ```bash
 cp .env.example .env      # DATABASE_URL, AUTH_SECRET, SEED_PASSWORD
 npm install
 npm run setup             # prisma generate + db push + seed
 npm run dev               # http://localhost:3100
 ```
+
+## Hosted
+
+| | |
+| --- | --- |
+| App | https://eduplus-connect.onrender.com |
+| Host | Render (free plan, Frankfurt) — auto-deploys `master` |
+| Database | Turso `eduplus-connect` (libSQL, eu-west-1) |
+| Repository | https://github.com/oounis/eduplus-connect (private) |
+
+The hosted database holds a real school, not the demo seed: one administrator
+and the current academic year. Everything else is entered through the app.
+
+The free plan sleeps after about fifteen minutes idle, so the first request
+after a quiet spell takes roughly a minute. Every request after that is fast.
+
+Deploying is a `git push` — Render builds `master` and restarts. If a build ever
+serves a page whose scripts 404, redeploy with the build cache cleared; a reused
+cache can leave the HTML and the chunk hashes out of step.
+
+### Changing the schema on the hosted database
+
+Prisma cannot push a schema over libSQL, so a change is applied as SQL:
+
+```bash
+npx prisma migrate diff --from-url "$TURSO_DATABASE_URL" \
+  --to-schema-datamodel prisma/schema.prisma --script > change.sql
+TURSO_DATABASE_URL=… TURSO_AUTH_TOKEN=… npm run db:remote change.sql
+TURSO_DATABASE_URL=… TURSO_AUTH_TOKEN=… npm run db:remote     # list tables
+```
+
+Credentials live in `~/.config/kogia/secrets.env` as `EDUPLUS_*`.
 
 ## Demo accounts
 
