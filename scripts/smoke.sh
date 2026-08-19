@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 set -a; . ./.env; set +a
 
 BASE="${1:-http://localhost:3100}"
-PAGES=(dashboard users access academic classes students assignments attendance observations tasks)
+PAGES=(dashboard users access academic classes students assignments attendance observations tasks reports profile)
 ACCOUNTS=(admin deputy staff supervisor teacher parent student)
 
 fail=0

@@ -182,7 +182,12 @@ export default async function StudentsPage({
                   <tr key={student.id}>
                     <td className="font-mono text-xs text-ink-500">{student.code}</td>
                     <td className="font-medium text-ink-900">
-                      {student.lastName}, {student.firstName}
+                      <Link
+                        href={`/students/${student.id}`}
+                        className="hover:text-brand-600"
+                      >
+                        {student.lastName}, {student.firstName}
+                      </Link>
                     </td>
                     <td className="text-ink-600">
                       {student.class ? (

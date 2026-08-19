@@ -330,7 +330,11 @@ async function FamilyDashboard({
                 (o) => o.studentId === student.id && o.sentiment === "CONCERN",
               ).length;
               return (
-                <div key={student.id} className="card px-5 py-4">
+                <Link
+                  key={student.id}
+                  href={`/students/${student.id}`}
+                  className="card px-5 py-4 transition-colors hover:border-brand-300"
+                >
                   <p className="font-medium text-ink-900">
                     {student.firstName} {student.lastName}
                   </p>
@@ -347,7 +351,7 @@ async function FamilyDashboard({
                       <p className="font-semibold tabular-nums">{concerns}</p>
                     </div>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

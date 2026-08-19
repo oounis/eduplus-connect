@@ -32,6 +32,7 @@ export const MODULES = [
   "attendance",
   "observations",
   "tasks",
+  "reports",
 ] as const;
 
 export type ModuleKey = (typeof MODULES)[number];
@@ -100,6 +101,12 @@ export const MODULE_META: Record<
     href: "/tasks",
     icon: "task",
   },
+  reports: {
+    label: "Reports",
+    description: "Attendance and observation reports over a date range",
+    href: "/reports",
+    icon: "chart",
+  },
 };
 
 /// Applied on a fresh database, and used as the reset baseline in /access.
@@ -118,6 +125,7 @@ export const DEFAULT_ROLE_ACCESS: Record<
     attendance: { view: true, edit: false },
     observations: { view: true, edit: false },
     tasks: { view: true, edit: true },
+    reports: { view: true, edit: false },
   },
   DEPUTY: {
     dashboard: { view: true, edit: false },
@@ -126,6 +134,7 @@ export const DEFAULT_ROLE_ACCESS: Record<
     attendance: { view: true, edit: false },
     observations: { view: true, edit: false },
     tasks: { view: true, edit: true },
+    reports: { view: true, edit: false },
   },
   STAFF: {
     dashboard: { view: true, edit: false },
@@ -134,16 +143,19 @@ export const DEFAULT_ROLE_ACCESS: Record<
     attendance: { view: true, edit: false },
     observations: { view: true, edit: false },
     tasks: { view: true, edit: false },
+    reports: { view: true, edit: false },
   },
   SUPERVISOR: {
     dashboard: { view: true, edit: false },
     students: { view: true, edit: false },
     attendance: { view: true, edit: true },
+    reports: { view: true, edit: false },
   },
   TEACHER: {
     dashboard: { view: true, edit: false },
     students: { view: true, edit: false },
     observations: { view: true, edit: true },
+    reports: { view: true, edit: false },
   },
   PARENT: {
     dashboard: { view: true, edit: false },

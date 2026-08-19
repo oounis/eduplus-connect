@@ -6,6 +6,7 @@
  */
 import { chromium } from "playwright";
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const BASE = process.argv[2] ?? "http://localhost:3100";
 const PASSWORD = process.env.SEED_PASSWORD ?? "Passw0rd!";
@@ -148,6 +149,117 @@ async function main() {
   await teacherPage.goto(`${BASE}/users`);
   check("teacher is redirected away from Users", teacherPage.url().includes("/denied"),
     teacherPage.url());
+
+  // -- 6. Student profile: only the right people may open it ---------------
+  console.log("\nStudent profile: visibility");
+  const child = await prisma.student.findFirst({
+    where: { parent: { email: "parent@eduplus.school" } },
+  });
+  const stranger = await prisma.student.findFirst({
+    where: { parentId: { not: child!.parentId }, classId: { not: null } },
+  });
+
+  const parentPage = await browser.newPage();
+  await parentPage.goto(`${BASE}/login`);
+  await parentPage.fill('input[name="email"]', "parent@eduplus.school");
+  await parentPage.fill('input[name="password"]', PASSWORD);
+  await parentPage.click('button[type="submit"]');
+  await parentPage.waitForURL("**/dashboard", { timeout: 15000 });
+
+  await parentPage.goto(`${BASE}/students/${child!.id}`);
+  const seesOwnChild = await parentPage
+    .locator(`text=${child!.lastName}`)
+    .first()
+    .count();
+  check("a parent can open their own child's profile", seesOwnChild > 0);
+
+  const strangerResponse = await parentPage.goto(`${BASE}/students/${stranger!.id}`);
+  check("a parent cannot open another family's child", strangerResponse?.status() === 404,
+    `HTTP ${strangerResponse?.status()}`);
+
+  // A teacher reaches the students of their own classes, and no others.
+  const inClass = await prisma.student.findFirst({ where: { classId: taughtId } });
+  const outOfClass = await prisma.student.findFirst({
+    where: { classId: { notIn: teacher!.taughtClasses.map((c) => c.classId) } },
+  });
+  const inResponse = await teacherPage.goto(`${BASE}/students/${inClass!.id}`);
+  check("a teacher opens a student of their own class", inResponse?.status() === 200);
+  const outResponse = await teacherPage.goto(`${BASE}/students/${outOfClass!.id}`);
+  check("a teacher cannot open a student outside their classes",
+    outResponse?.status() === 404, `HTTP ${outResponse?.status()}`);
+
+  const historyRows = await teacherPage.goto(`${BASE}/students/${inClass!.id}?days=90`);
+  check("the profile accepts a longer period", historyRows?.status() === 200);
+
+  // -- 7. Reports and CSV export -------------------------------------------
+  console.log("\nReports: totals and CSV export");
+  await adminPage.goto(`${BASE}/reports`);
+  await adminPage.waitForSelector("text=Students by absence", { timeout: 20000 });
+  const classRowCount = await adminPage
+    .locator("table")
+    .first()
+    .locator("tbody tr")
+    .count();
+  check("the report lists every class", classRowCount === 6, `${classRowCount} rows`);
+
+  const csv = await adminPage.request.get(`${BASE}/reports/export?type=students`);
+  const csvBody = await csv.text();
+  const csvLines = csvBody.trim().split("\r\n");
+  check("student CSV downloads", csv.status() === 200 &&
+    csv.headers()["content-type"].startsWith("text/csv"), csv.headers()["content-type"]);
+  check("student CSV has a row per student", csvLines.length === 89,
+    `${csvLines.length} lines including the header`);
+
+  const obsCsv = await adminPage.request.get(`${BASE}/reports/export?type=observations`);
+  check("observation CSV downloads", obsCsv.status() === 200);
+
+  const parentCsv = await parentPage.request.get(`${BASE}/reports/export?type=students`);
+  check("a parent is refused the export", parentCsv.status() === 403,
+    `HTTP ${parentCsv.status()}`);
+
+  // A supervisor's export must contain only their own classes.
+  const supCsv = await supervisorPage.request.get(`${BASE}/reports/export?type=classes`);
+  const supLines = (await supCsv.text()).trim().split("\r\n");
+  check("a supervisor exports only their own classes", supLines.length === 4,
+    `${supLines.length - 1} classes`);
+
+  // -- 8. A user can change their own password ------------------------------
+  console.log("\nAccount: change my own password");
+  const NEW_PASSWORD = "ChangedPass1!";
+  await staffPage.goto(`${BASE}/profile`);
+  await staffPage.fill('input[name="currentPassword"]', PASSWORD);
+  await staffPage.fill('input[name="newPassword"]', NEW_PASSWORD);
+  await staffPage.fill('input[name="confirmPassword"]', "somethingElse1!");
+  await staffPage.click('button:has-text("Change password")');
+  await staffPage.waitForSelector("text=do not match", { timeout: 15000 });
+  check("a mismatched confirmation is rejected", true);
+
+  await staffPage.fill('input[name="currentPassword"]', PASSWORD);
+  await staffPage.fill('input[name="newPassword"]', NEW_PASSWORD);
+  await staffPage.fill('input[name="confirmPassword"]', NEW_PASSWORD);
+  await staffPage.click('button:has-text("Change password")');
+  await staffPage.waitForSelector("text=Your password was changed", { timeout: 15000 });
+
+  const relogin = await browser.newPage();
+  await relogin.goto(`${BASE}/login`);
+  await relogin.fill('input[name="email"]', "staff@eduplus.school");
+  await relogin.fill('input[name="password"]', NEW_PASSWORD);
+  await relogin.click('button[type="submit"]');
+  await relogin.waitForURL("**/dashboard", { timeout: 15000 });
+  check("the new password signs in", relogin.url().includes("/dashboard"));
+
+  // Put the seed password back so the suite can run again.
+  await relogin.goto(`${BASE}/profile`);
+  await relogin.fill('input[name="currentPassword"]', NEW_PASSWORD);
+  await relogin.fill('input[name="newPassword"]', PASSWORD);
+  await relogin.fill('input[name="confirmPassword"]', PASSWORD);
+  await relogin.click('button:has-text("Change password")');
+  await relogin.waitForSelector("text=Your password was changed", { timeout: 15000 });
+  const restored = await prisma.user.findUnique({
+    where: { email: "staff@eduplus.school" },
+  });
+  check("the seed password is restored",
+    await bcrypt.compare(PASSWORD, restored!.passwordHash));
 
   await browser.close();
   await prisma.$disconnect();

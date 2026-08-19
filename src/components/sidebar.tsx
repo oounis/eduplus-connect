@@ -19,6 +19,7 @@ function Icon({ name }: { name: string }) {
     check: "M4 12l5 5L20 6",
     note: "M6 3h9l5 5v13H6zM15 3v5h5M9 13h7M9 17h5",
     task: "M9 5h10M9 12h10M9 19h10M4 5l1 1 2-2M4 12l1 1 2-2M4 19l1 1 2-2",
+    chart: "M4 20V10M10 20V4M16 20v-7M22 20H2",
   };
   return (
     <svg

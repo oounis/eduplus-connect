@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { MODULES, MODULE_META, ROLE_LABELS } from "@/lib/constants";
 import Sidebar, { type NavItem } from "@/components/sidebar";
@@ -32,18 +33,26 @@ export default async function AppLayout({
             Signed in as{" "}
             <span className="font-medium text-ink-800">{user.email}</span>
           </p>
-          <form action={logout}>
-            <button type="submit" className="btn-secondary btn-sm">
-              Sign out
-            </button>
-          </form>
+          <div className="flex items-center gap-2">
+            <Link href="/profile" className="btn-secondary btn-sm">
+              My account
+            </Link>
+            <form action={logout}>
+              <button type="submit" className="btn-secondary btn-sm">
+                Sign out
+              </button>
+            </form>
+          </div>
         </header>
 
         <main className="min-w-0 flex-1 px-5 py-6 lg:px-8 lg:py-8">
           {children}
         </main>
 
-        <footer className="px-5 py-6 lg:hidden">
+        <footer className="space-y-2 px-5 py-6 lg:hidden">
+          <Link href="/profile" className="btn-secondary block w-full text-center">
+            My account
+          </Link>
           <form action={logout}>
             <button type="submit" className="btn-secondary w-full">
               Sign out
