@@ -5,16 +5,20 @@
   "scripts": {
     "dev": "next dev -p 3100",
     "build": "prisma generate && next build",
-    "start": "next start -p 3100",
+    "start": "next start -p ${PORT:-3100}",
     "lint": "next lint",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma db push --force-reset --skip-generate && npm run db:seed",
     "db:studio": "prisma studio",
     "setup": "prisma generate && prisma db push && npm run db:seed",
-    "db:sync-access": "tsx scripts/sync-access.ts"
+    "db:sync-access": "tsx scripts/sync-access.ts",
+    "db:remote": "tsx scripts/db-remote.ts",
+    "seed:production": "tsx scripts/seed-production.ts"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.4",
+    "@prisma/adapter-libsql": "^6.19.3",
     "@prisma/client": "^6.2.1",
     "bcryptjs": "^2.4.3",
     "jose": "^5.9.6",
