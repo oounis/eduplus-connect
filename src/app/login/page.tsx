@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import LoginForm from "./login-form";
 
 const DEMO_ACCOUNTS = [
@@ -13,7 +13,10 @@ const DEMO_ACCOUNTS = [
 ];
 
 export default async function LoginPage() {
-  if (await getSession()) redirect("/dashboard");
+  // Only a session that still resolves to an active user skips the form. A
+  // stale cookie (reseeded database, deleted account) must land HERE, not
+  // bounce to /dashboard and back forever.
+  if (await getCurrentUser()) redirect("/dashboard");
 
   return (
     <main className="flex min-h-screen flex-col lg:flex-row">

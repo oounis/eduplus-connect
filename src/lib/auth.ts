@@ -81,7 +81,12 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 /** Use in every protected page: redirects to /login when signed out. */
 export async function requireUser(): Promise<CurrentUser> {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) {
+    // A cookie that verifies but resolves to no (active) user is stale: clear
+    // it through the route handler, otherwise /login bounces straight back here.
+    const jar = await cookies();
+    redirect(jar.get(SESSION_COOKIE) ? "/session/expired" : "/login");
+  }
   return user;
 }
 
