@@ -1,3 +1,4 @@
+import { ConfirmSubmit } from "@/components/confirm-submit";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireModule } from "@/lib/auth";
@@ -275,9 +276,12 @@ export default async function ClassDetailPage({
                 {klass.students.length === 0 && (
                   <form action={deleteClass} className="mt-4 border-t border-ink-100 pt-4">
                     <input type="hidden" name="id" value={klass.id} />
-                    <button type="submit" className="btn-danger btn-sm">
+                    <ConfirmSubmit
+                      className="btn-danger btn-sm"
+                      message={`Delete the class ${klass.name}? This cannot be undone.`}
+                    >
                       Delete this class
-                    </button>
+                    </ConfirmSubmit>
                   </form>
                 )}
               </div>

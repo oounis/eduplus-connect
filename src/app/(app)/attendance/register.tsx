@@ -127,6 +127,7 @@ export default function Register({
                   <td>
                     <input
                       name={`note:${student.id}`}
+                      aria-label={`Note for ${student.firstName} ${student.lastName}`}
                       defaultValue={student.note}
                       disabled={readOnly}
                       className="input py-1 text-xs"

@@ -1,3 +1,4 @@
+import { ConfirmSubmit } from "@/components/confirm-submit";
 import Link from "next/link";
 import { requireModule } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -269,9 +270,12 @@ export default async function ObservationsPage({
                                 {canDelete && (
                                   <form action={deleteObservation}>
                                     <input type="hidden" name="id" value={row.id} />
-                                    <button type="submit" className="btn-danger btn-sm">
+                                    <ConfirmSubmit
+                                      className="btn-danger btn-sm"
+                                      message="Delete this observation? This cannot be undone."
+                                    >
                                       Delete
-                                    </button>
+                                    </ConfirmSubmit>
                                   </form>
                                 )}
                               </div>

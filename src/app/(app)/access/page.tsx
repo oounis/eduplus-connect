@@ -1,3 +1,4 @@
+import { ConfirmSubmit } from "@/components/confirm-submit";
 import { requireModule } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
@@ -31,9 +32,9 @@ export default async function AccessPage() {
         actions={
           canEdit ? (
             <form action={resetAccessMatrix}>
-              <button type="submit" className="btn-secondary btn-sm">
+              <ConfirmSubmit message="Reset every role's access rights to the defaults? Your custom settings will be lost.">
                 Reset to defaults
-              </button>
+              </ConfirmSubmit>
             </form>
           ) : null
         }

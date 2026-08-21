@@ -221,6 +221,7 @@ export default async function StudentsPage({
                           <input type="hidden" name="id" value={student.id} />
                           <select
                             name="classId"
+                            aria-label={`Class for ${student.firstName} ${student.lastName}`}
                             className="select w-40 py-1 text-xs"
                             defaultValue={student.classId ?? ""}
                           >

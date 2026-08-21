@@ -1,3 +1,4 @@
+import { ConfirmSubmit } from "@/components/confirm-submit";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireModule } from "@/lib/auth";
@@ -204,9 +205,12 @@ export default async function EditUserPage({
                 </p>
                 <form action={deleteUser}>
                   <input type="hidden" name="id" value={user.id} />
-                  <button type="submit" className="btn-danger btn-sm">
+                  <ConfirmSubmit
+                    className="btn-danger btn-sm"
+                    message={`Delete ${user.firstName} ${user.lastName} and everything linked to this account? This cannot be undone.`}
+                  >
                     Delete this user
-                  </button>
+                  </ConfirmSubmit>
                 </form>
               </div>
             </Card>

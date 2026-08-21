@@ -5,7 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { assertModule } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
-import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
+import { TASK_PRIORITIES, TASK_STATUSES, TASK_STATUS_LABELS } from "@/lib/constants";
 
 export type ActionState = { error?: string; success?: string };
 
@@ -79,13 +79,17 @@ export async function updateTaskStatus(formData: FormData) {
 
   const isAssignee = task.assigneeId === user.userId;
   if (!isAssignee && !user.access.tasks.edit) return;
+  // Same status submitted again: nothing changed, so nothing to write and
+  // nothing to audit (the log used to fill up with "from todo to todo").
+  if (task.status === status) return;
 
   await prisma.task.update({ where: { id }, data: { status } });
+  const label = (s: string) => TASK_STATUS_LABELS[s as keyof typeof TASK_STATUS_LABELS] ?? s;
   await recordAudit(user, {
     action: "UPDATE",
     entity: "task",
     entityId: id,
-    summary: `Moved "${task.title}" from ${task.status.toLowerCase()} to ${status.toLowerCase()}`,
+    summary: `Moved "${task.title}" from ${label(task.status)} to ${label(status)}`,
   });
   revalidatePath("/tasks");
 }

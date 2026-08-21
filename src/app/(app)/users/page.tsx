@@ -1,3 +1,4 @@
+import { ConfirmSubmit } from "@/components/confirm-submit";
 import Link from "next/link";
 import { requireModule } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -170,9 +171,17 @@ export default async function UsersPage({
                             {row.id !== user.userId && (
                               <form action={toggleUserActive}>
                                 <input type="hidden" name="id" value={row.id} />
-                                <button type="submit" className="btn-secondary btn-sm">
-                                  {row.isActive ? "Disable" : "Enable"}
-                                </button>
+                                {row.isActive ? (
+                                  <ConfirmSubmit
+                                    message={`Disable ${row.firstName} ${row.lastName}? They will no longer be able to sign in until re-enabled.`}
+                                  >
+                                    Disable
+                                  </ConfirmSubmit>
+                                ) : (
+                                  <button type="submit" className="btn-secondary btn-sm">
+                                    Enable
+                                  </button>
+                                )}
                               </form>
                             )}
                           </>

@@ -1,3 +1,4 @@
+import { ConfirmSubmit } from "@/components/confirm-submit";
 import { requireModule } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatDate, today } from "@/lib/dates";
@@ -179,6 +180,7 @@ export default async function TasksPage({
                               <input type="hidden" name="id" value={task.id} />
                               <select
                                 name="status"
+                                aria-label={`Status of ${task.title}`}
                                 defaultValue={task.status}
                                 className="select w-32 py-1 text-xs"
                               >
@@ -196,9 +198,12 @@ export default async function TasksPage({
                           {canEdit && (
                             <form action={deleteTask}>
                               <input type="hidden" name="id" value={task.id} />
-                              <button type="submit" className="btn-danger btn-sm">
+                              <ConfirmSubmit
+                                className="btn-danger btn-sm"
+                                message={`Delete the task "${task.title}"? This cannot be undone.`}
+                              >
                                 Delete
-                              </button>
+                              </ConfirmSubmit>
                             </form>
                           )}
                         </div>

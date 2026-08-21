@@ -1,3 +1,4 @@
+import { ConfirmSubmit } from "@/components/confirm-submit";
 import { requireModule } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatDate } from "@/lib/dates";
@@ -122,9 +123,12 @@ export default async function AcademicPage() {
                         {year._count.classes === 0 && (
                           <form action={deleteAcademicYear}>
                             <input type="hidden" name="id" value={year.id} />
-                            <button type="submit" className="btn-danger btn-sm">
+                            <ConfirmSubmit
+                              className="btn-danger btn-sm"
+                              message={`Delete the academic year ${year.name}? This cannot be undone.`}
+                            >
                               Delete
-                            </button>
+                            </ConfirmSubmit>
                           </form>
                         )}
                       </>
@@ -163,9 +167,12 @@ export default async function AcademicPage() {
                               <td className="text-right">
                                 <form action={deleteTerm} className="flex justify-end">
                                   <input type="hidden" name="id" value={term.id} />
-                                  <button type="submit" className="btn-danger btn-sm">
+                                  <ConfirmSubmit
+                                    className="btn-danger btn-sm"
+                                    message={`Remove the term ${term.name}? This cannot be undone.`}
+                                  >
                                     Remove
-                                  </button>
+                                  </ConfirmSubmit>
                                 </form>
                               </td>
                             )}
