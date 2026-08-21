@@ -95,7 +95,7 @@ export default function Sidebar({
             <p className="text-sm font-semibold tracking-tight">
               EduPlus Connect
             </p>
-            <p className="text-[11px] text-ink-500">School management · Kogia World</p>
+            <p className="text-[11px] text-ink-500">School management</p>
           </div>
         </div>
 
