@@ -14,7 +14,8 @@
     "setup": "prisma generate && prisma db push && npm run db:seed",
     "db:sync-access": "tsx scripts/sync-access.ts",
     "db:remote": "tsx scripts/db-remote.ts",
-    "seed:production": "tsx scripts/seed-production.ts"
+    "seed:production": "tsx scripts/seed-production.ts",
+    "test": "node --test src/lib/"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",
@@ -41,5 +42,10 @@
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
+  },
+  "overrides": {
+    "sharp": "^0.35.3",
+    "postcss": "^8.5.26",
+    "deepmerge-ts": "^8.0.2"
   }
 }
