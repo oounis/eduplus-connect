@@ -25,6 +25,7 @@ export default async function AppLayout({
         items={items}
         userName={user.name}
         userRole={ROLE_LABELS[user.role]}
+        roleKey={user.role}
       />
 
       <div className="flex min-w-0 flex-1 flex-col">

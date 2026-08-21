@@ -21,8 +21,10 @@ export default async function LoginPage() {
       <section className="relative flex flex-col justify-between bg-brand-700 px-8 py-10 text-white lg:w-[42%] lg:px-12 lg:py-14">
         <div>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/15 text-lg font-bold">
-              E+
+            <div className="flex h-10 w-12 items-center justify-center rounded-lg bg-white/15 px-1.5">
+              {/* The Kogia whale, white on the EduPlus blue (brand/marque) */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/kogia/mark-white.svg" alt="" width={36} height={26} />
             </div>
             <span className="text-lg font-semibold tracking-tight">
               EduPlus Connect

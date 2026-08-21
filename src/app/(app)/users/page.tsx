@@ -1,3 +1,4 @@
+import { Avatar } from "@/components/kogia";
 import { ConfirmSubmit } from "@/components/confirm-submit";
 import Link from "next/link";
 import { requireModule } from "@/lib/auth";
@@ -147,10 +148,15 @@ export default async function UsersPage({
                 {users.map((row) => (
                   <tr key={row.id}>
                     <td className="font-medium text-ink-900">
-                      {row.firstName} {row.lastName}
-                      {row.id === user.userId && (
-                        <span className="ml-2 text-xs text-ink-400">(you)</span>
-                      )}
+                      <span className="flex items-center gap-2.5">
+                        <Avatar seed={`${row.firstName} ${row.lastName}`} size={30} />
+                        <span>
+                          {row.firstName} {row.lastName}
+                          {row.id === user.userId && (
+                            <span className="ml-2 text-xs text-ink-400">(you)</span>
+                          )}
+                        </span>
+                      </span>
                     </td>
                     <td className="text-ink-600">{row.email}</td>
                     <td><RoleBadge role={row.role} /></td>

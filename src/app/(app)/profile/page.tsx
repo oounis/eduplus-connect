@@ -1,3 +1,4 @@
+import { Avatar, TIER_LABELS, TierBadge, tierFor } from "@/components/kogia";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ActionForm } from "@/components/action-form";
@@ -24,6 +25,16 @@ export default async function ProfilePage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-6">
           <Card title="Details">
+            <div className="flex items-center gap-4 border-b border-ink-200 px-5 py-4">
+              <Avatar seed={user.name} size={64} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-base font-semibold text-ink-900">{user.name}</p>
+                <p className="text-xs text-ink-500">
+                  {TIER_LABELS[tierFor(user.role)]} account · Kogia World
+                </p>
+              </div>
+              <TierBadge role={user.role} size={48} />
+            </div>
             <div className="grid gap-4 px-5 py-4 text-sm sm:grid-cols-2">
               <div>
                 <p className="text-xs text-ink-500">Name</p>
