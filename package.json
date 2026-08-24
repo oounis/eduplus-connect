@@ -15,13 +15,15 @@
     "db:sync-access": "tsx scripts/sync-access.ts",
     "db:remote": "tsx scripts/db-remote.ts",
     "seed:production": "tsx scripts/seed-production.ts",
-    "test": "node --test src/lib/"
+    "test": "node --test src/lib/",
+    "test:contact": "tsx scripts/contact-access-test.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",
     "@prisma/adapter-libsql": "^6.19.3",
     "@prisma/client": "^6.2.1",
     "bcryptjs": "^2.4.3",
+    "exceljs": "^4.4.0",
     "jose": "^5.9.6",
     "next": "^15.1.6",
     "react": "^19.0.0",

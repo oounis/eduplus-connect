@@ -259,6 +259,24 @@ async function main() {
     data: { parentId: parents[1].id },
   });
 
+  // Contact details on roughly two thirds of students, so the supervisor
+  // contact form and the Excel export both have something to show. Real
+  // schools have gaps here too, which is why some are left blank.
+  const allStudents = await prisma.student.findMany({ orderBy: { code: "asc" } });
+  for (const [index, s] of allStudents.entries()) {
+    if (index % 3 === 2) continue; // leave every third student without contact details
+    const slug = `${s.firstName}.${s.lastName}`.toLowerCase().replace(/[^a-z.]/g, "");
+    await prisma.student.update({
+      where: { id: s.id },
+      data: {
+        email: `${slug}@example.com`,
+        phone: `+973 3${String(100000 + index * 137).slice(0, 6)}`,
+        phone2: index % 2 === 0 ? `+973 6${String(200000 + index * 211).slice(0, 6)}` : null,
+        phone3: index % 5 === 0 ? `+973 1${String(700000 + index * 313).slice(0, 6)}` : null,
+      },
+    });
+  }
+
   const studentUser = await makeUser(
     "student@eduplus.school",
     students[0].firstName,

@@ -24,6 +24,8 @@ model User {
   firstName    String
   lastName     String
   phone        String?
+  phone2       String?
+  phone3       String?
   role         String // ADMIN | DEPUTY | STAFF | SUPERVISOR | TEACHER | PARENT | STUDENT
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
@@ -126,6 +128,13 @@ model Student {
   firstName   String
   lastName    String
   dateOfBirth DateTime?
+  // Contact details for the student / their guardian. Held on the student
+  // rather than on a User because most students have no account of their own.
+  // Supervisors may edit exactly these four fields for their assigned classes.
+  email       String?
+  phone       String?
+  phone2      String?
+  phone3      String?
   isActive    Boolean   @default(true)
   classId     String?
   parentId    String?

@@ -73,6 +73,14 @@ export default async function StudentsPage({
             ? `All students of ${year?.name ?? "the school"}.`
             : "Students in the classes assigned to you."
         }
+        actions={
+          <a
+            href={`/students/export${params.classId ? `?classId=${encodeURIComponent(params.classId)}` : ""}`}
+            className="btn-secondary btn-sm"
+          >
+            Export to Excel
+          </a>
+        }
       />
 
       {/* Filters */}

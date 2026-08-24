@@ -13,6 +13,8 @@ import {
   StatTile,
 } from "@/components/ui";
 import { OBSERVATION_CATEGORY_LABELS } from "@/lib/constants";
+import { canEditStudentContact } from "@/lib/student-contact";
+import { StudentContactForm } from "./contact-form";
 
 const RANGES = [30, 90, 365] as const;
 
@@ -35,6 +37,10 @@ export default async function StudentProfilePage({
     : 30;
   const from = addDays(today(), -window);
   const history = await getStudentHistory(student.id, from);
+
+  // Supervisors may edit contact details, but only for their own classes.
+  const contactPermission = await canEditStudentContact(user, student.id);
+  const showContact = user.access.students?.view ?? false;
 
   const age = student.dateOfBirth
     ? Math.floor(
@@ -207,7 +213,31 @@ export default async function StudentProfilePage({
         </Card>
       </div>
 
-      {/* Contact — staff only ---------------------------------------------- */}
+      {/* Contact details — editable by staff, and by the class supervisor ---- */}
+      {showContact && (
+        <Card
+          className="mt-6"
+          title="Contact details"
+          subtitle={
+            contactPermission.allowed
+              ? contactPermission.reason === "supervisor"
+                ? "You supervise this class, so you may update these four fields"
+                : undefined
+              : "Read-only — this student is not in a class assigned to you"
+          }
+        >
+          <StudentContactForm
+            studentId={student.id}
+            email={student.email}
+            phone={student.phone}
+            phone2={student.phone2}
+            phone3={student.phone3}
+            canEdit={contactPermission.allowed}
+          />
+        </Card>
+      )}
+
+      {/* Record — staff only ------------------------------------------------ */}
       {user.access.students?.view && (
         <Card className="mt-6" title="Record">
           <div className="grid gap-4 px-5 py-4 text-sm sm:grid-cols-3">

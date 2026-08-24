@@ -374,12 +374,34 @@ export default async function ReportsPage({
               title="Observations by category"
               subtitle="Category against sentiment"
               actions={
-                <a
-                  href={`/reports/export?type=observations&${query}`}
-                  className="btn-secondary btn-sm"
-                >
-                  Export CSV
-                </a>
+
+                <div className="flex gap-2">
+
+                  <a
+
+                    href={`/reports/export-observations?${query}`}
+
+                    className="btn-secondary btn-sm"
+
+                  >
+
+                    Export by week (Excel)
+
+                  </a>
+
+                  <a
+
+                    href={`/reports/export?type=observations&${query}`}
+
+                    className="btn-secondary btn-sm"
+
+                  >
+
+                    Export CSV
+
+                  </a>
+
+                </div>
               }
             >
               <div className="overflow-x-auto">
