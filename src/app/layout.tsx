@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { getLocale } from "@/lib/locale";
+import { LOCALE_META } from "@/lib/i18n";
 
 export const metadata: Metadata = {
   title: "EduPlus Connect",
@@ -9,12 +11,17 @@ export const metadata: Metadata = {
   icons: { icon: "/kogia/tile.svg" },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Language and direction come from the locale cookie, so the whole shell
+  // mirrors for Arabic without duplicating any route.
+  const locale = await getLocale();
+  const { dir, htmlLang } = LOCALE_META[locale];
+
   return (
     // data-kogia-product: EduPlus Connect is a Kogia World product lane.
-    <html lang="en" data-kogia-product="eduplus">
+    <html lang={htmlLang} dir={dir} data-kogia-product="eduplus">
       <body>{children}</body>
     </html>
   );

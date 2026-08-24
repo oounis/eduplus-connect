@@ -4,23 +4,34 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { login, type LoginState } from "./actions";
 
-function SubmitButton() {
+function SubmitButton({ label, busy }: { label: string; busy: string }) {
   const { pending } = useFormStatus();
   return (
     <button type="submit" className="btn-primary w-full" disabled={pending}>
-      {pending ? "Signing in…" : "Sign in"}
+      {pending ? busy : label}
     </button>
   );
 }
 
-export default function LoginForm() {
+// Client component, so the translated strings arrive as props.
+export default function LoginForm({
+  emailLabel,
+  passwordLabel,
+  submitLabel,
+  submittingLabel,
+}: {
+  emailLabel: string;
+  passwordLabel: string;
+  submitLabel: string;
+  submittingLabel: string;
+}) {
   const [state, formAction] = useActionState<LoginState, FormData>(login, {});
 
   return (
     <form action={formAction} className="mt-6 space-y-4">
       <div>
         <label className="label" htmlFor="email">
-          Email address
+          {emailLabel}
         </label>
         <input
           id="email"
@@ -36,7 +47,7 @@ export default function LoginForm() {
 
       <div>
         <label className="label" htmlFor="password">
-          Password
+          {passwordLabel}
         </label>
         <input
           id="password"
@@ -56,7 +67,7 @@ export default function LoginForm() {
         </p>
       )}
 
-      <SubmitButton />
+      <SubmitButton label={submitLabel} busy={submittingLabel} />
     </form>
   );
 }

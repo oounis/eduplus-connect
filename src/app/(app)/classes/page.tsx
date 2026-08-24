@@ -112,10 +112,10 @@ export default async function ClassesPage() {
                   <th>Class</th>
                   <th>Level</th>
                   <th>Room</th>
-                  <th className="text-right">Students</th>
+                  <th className="text-end">Students</th>
                   <th>Supervisor</th>
                   <th>Teachers</th>
-                  <th className="text-right">Actions</th>
+                  <th className="text-end">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -128,7 +128,7 @@ export default async function ClassesPage() {
                     </td>
                     <td className="text-ink-600">{klass.level}</td>
                     <td className="text-ink-600">{klass.room ?? "—"}</td>
-                    <td className="text-right tabular-nums">
+                    <td className="text-end tabular-nums">
                       {klass._count.students}
                       <span className="text-ink-400"> / {klass.capacity}</span>
                     </td>
@@ -152,7 +152,7 @@ export default async function ClassesPage() {
                         `${klass.teachers.length} assigned`
                       )}
                     </td>
-                    <td className="text-right">
+                    <td className="text-end">
                       <Link href={`/classes/${klass.id}`} className="btn-secondary btn-sm">
                         Open
                       </Link>

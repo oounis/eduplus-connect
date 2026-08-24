@@ -30,12 +30,21 @@ export default function Sidebar({
   userName,
   userRole,
   roleKey,
+  appName,
+  tagline,
+  menuLabel,
+  closeLabel,
 }: {
   items: NavItem[];
   userName: string;
   userRole: string;
   /** Raw role (ADMIN, TEACHER…) used for the Kogia account level. */
   roleKey: string;
+  /** Translated in the layout — this is a client component, so strings arrive as props. */
+  appName: string;
+  tagline: string;
+  menuLabel: string;
+  closeLabel: string;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -70,7 +79,7 @@ export default function Sidebar({
       <div className="flex items-center justify-between border-b border-ink-200 bg-white px-4 py-3 lg:hidden">
         <div className="flex items-center gap-2">
           <KogiaTile size={28} />
-          <span className="text-sm font-semibold">EduPlus Connect</span>
+          <span className="text-sm font-semibold">{appName}</span>
         </div>
         <button
           type="button"
@@ -78,7 +87,7 @@ export default function Sidebar({
           className="btn-secondary btn-sm"
           aria-expanded={open}
         >
-          {open ? "Close" : "Menu"}
+          {open ? closeLabel : menuLabel}
         </button>
       </div>
       {open && (
@@ -88,14 +97,12 @@ export default function Sidebar({
       )}
 
       {/* Desktop sidebar */}
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-ink-200 bg-white lg:flex">
+      <aside className="hidden w-60 shrink-0 flex-col border-e border-ink-200 bg-white lg:flex">
         <div className="flex items-center gap-2.5 border-b border-ink-200 px-5 py-4">
           <KogiaTile size={32} />
           <div className="leading-tight">
-            <p className="text-sm font-semibold tracking-tight">
-              EduPlus Connect
-            </p>
-            <p className="text-[11px] text-ink-500">School management</p>
+            <p className="text-sm font-semibold tracking-tight">{appName}</p>
+            <p className="text-[11px] text-ink-500">{tagline}</p>
           </div>
         </div>
 

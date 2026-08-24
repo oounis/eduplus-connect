@@ -14,6 +14,7 @@ import {
 } from "@/components/ui";
 import { OBSERVATION_CATEGORY_LABELS } from "@/lib/constants";
 import { canEditStudentContact } from "@/lib/student-contact";
+import { getT } from "@/lib/locale";
 import { StudentContactForm } from "./contact-form";
 
 const RANGES = [30, 90, 365] as const;
@@ -39,6 +40,7 @@ export default async function StudentProfilePage({
   const history = await getStudentHistory(student.id, from);
 
   // Supervisors may edit contact details, but only for their own classes.
+  const t = await getT();
   const contactPermission = await canEditStudentContact(user, student.id);
   const showContact = user.access.students?.view ?? false;
 
@@ -55,7 +57,7 @@ export default async function StudentProfilePage({
         title={`${student.firstName} ${student.lastName}`}
         description={[
           student.code,
-          student.class?.name ?? "Unassigned",
+          student.class?.name ?? t("common.unassigned"),
           age !== null ? `${age} years old` : null,
           student.isActive ? null : "Inactive",
         ]
@@ -155,7 +157,7 @@ export default async function StudentProfilePage({
                     <th>Date</th>
                     <th>Status</th>
                     <th>Note</th>
-                    <th className="text-right">Recorded by</th>
+                    <th className="text-end">Recorded by</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -168,7 +170,7 @@ export default async function StudentProfilePage({
                         <AttendanceBadge status={row.status} />
                       </td>
                       <td className="text-ink-600">{row.note || "—"}</td>
-                      <td className="text-right text-xs text-ink-400">
+                      <td className="text-end text-xs text-ink-400">
                         {row.recordedBy.firstName} {row.recordedBy.lastName}
                       </td>
                     </tr>
@@ -217,13 +219,13 @@ export default async function StudentProfilePage({
       {showContact && (
         <Card
           className="mt-6"
-          title="Contact details"
+          title={t("contact.title")}
           subtitle={
             contactPermission.allowed
               ? contactPermission.reason === "supervisor"
-                ? "You supervise this class, so you may update these four fields"
+                ? t("contact.supervisorHint")
                 : undefined
-              : "Read-only — this student is not in a class assigned to you"
+              : t("contact.readOnly")
           }
         >
           <StudentContactForm
@@ -233,16 +235,25 @@ export default async function StudentProfilePage({
             phone2={student.phone2}
             phone3={student.phone3}
             canEdit={contactPermission.allowed}
+            labels={{
+              email: t("common.email"),
+              phone: t("common.phone"),
+              phone2: t("common.phone2"),
+              phone3: t("common.phone3"),
+              save: t("contact.save"),
+              saving: t("action.saving"),
+              clearHint: t("contact.clearHint"),
+            }}
           />
         </Card>
       )}
 
       {/* Record — staff only ------------------------------------------------ */}
       {user.access.students?.view && (
-        <Card className="mt-6" title="Record">
+        <Card className="mt-6" title={t("students.record")}>
           <div className="grid gap-4 px-5 py-4 text-sm sm:grid-cols-3">
             <div>
-              <p className="text-xs text-ink-500">Class</p>
+              <p className="text-xs text-ink-500">{t("common.class")}</p>
               <p className="text-ink-800">
                 {student.class ? (
                   <Link
@@ -252,12 +263,12 @@ export default async function StudentProfilePage({
                     {student.class.name}
                   </Link>
                 ) : (
-                  "Unassigned"
+                  t("common.unassigned")
                 )}
               </p>
             </div>
             <div>
-              <p className="text-xs text-ink-500">Parent</p>
+              <p className="text-xs text-ink-500">{t("common.parent")}</p>
               <p className="text-ink-800">
                 {student.parent
                   ? `${student.parent.firstName} ${student.parent.lastName}`
@@ -271,8 +282,8 @@ export default async function StudentProfilePage({
               )}
             </div>
             <div>
-              <p className="text-xs text-ink-500">Student account</p>
-              <p className="text-ink-800">{student.user?.email ?? "None"}</p>
+              <p className="text-xs text-ink-500">{t("students.studentAccount")}</p>
+              <p className="text-ink-800">{student.user?.email ?? t("common.none")}</p>
             </div>
           </div>
         </Card>

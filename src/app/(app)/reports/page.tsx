@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getT } from "@/lib/locale";
 import { requireModule, isSchoolWide } from "@/lib/auth";
 import { resolveReportScope } from "@/lib/reports";
 import {
@@ -30,6 +31,7 @@ export default async function ReportsPage({
   searchParams: Promise<{ from?: string; to?: string; classId?: string }>;
 }) {
   const user = await requireModule("reports");
+  const t = await getT();
   const scope = await resolveReportScope(user, await searchParams);
 
   // Terms give the year its real shape — offer them as one-click periods.
@@ -226,7 +228,7 @@ export default async function ReportsPage({
                 href={`/reports/export?type=classes&${query}`}
                 className="btn-secondary btn-sm"
               >
-                Export CSV
+                {t("action.exportCsv")}
               </a>
             }
           >
@@ -235,15 +237,15 @@ export default async function ReportsPage({
                 <thead>
                   <tr>
                     <th>Class</th>
-                    <th className="text-right">Students</th>
-                    <th className="text-right">Days taken</th>
+                    <th className="text-end">Students</th>
+                    <th className="text-end">Days taken</th>
                     <th className="w-40">Breakdown</th>
-                    <th className="text-right">Present</th>
-                    <th className="text-right">Absent</th>
-                    <th className="text-right">Late</th>
-                    <th className="text-right">Rate</th>
-                    <th className="text-right">Observations</th>
-                    <th className="text-right">Concerns</th>
+                    <th className="text-end">Present</th>
+                    <th className="text-end">Absent</th>
+                    <th className="text-end">Late</th>
+                    <th className="text-end">Rate</th>
+                    <th className="text-end">Observations</th>
+                    <th className="text-end">Concerns</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -257,8 +259,8 @@ export default async function ReportsPage({
                           {row.className}
                         </Link>
                       </td>
-                      <td className="text-right tabular-nums">{row.enrolled}</td>
-                      <td className="text-right tabular-nums">{row.daysRecorded}</td>
+                      <td className="text-end tabular-nums">{row.enrolled}</td>
+                      <td className="text-end tabular-nums">{row.daysRecorded}</td>
                       <td>
                         <AttendanceBar
                           present={row.present}
@@ -267,20 +269,20 @@ export default async function ReportsPage({
                           excused={row.excused}
                         />
                       </td>
-                      <td className="text-right tabular-nums">{row.present}</td>
-                      <td className="text-right tabular-nums">
+                      <td className="text-end tabular-nums">{row.present}</td>
+                      <td className="text-end tabular-nums">
                         {row.absent > 0 ? (
                           <span className="font-medium text-red-600">{row.absent}</span>
                         ) : (
                           0
                         )}
                       </td>
-                      <td className="text-right tabular-nums">{row.late}</td>
-                      <td className="text-right tabular-nums">
+                      <td className="text-end tabular-nums">{row.late}</td>
+                      <td className="text-end tabular-nums">
                         {row.rate === null ? "—" : `${row.rate.toFixed(0)}%`}
                       </td>
-                      <td className="text-right tabular-nums">{row.observations}</td>
-                      <td className="text-right tabular-nums">
+                      <td className="text-end tabular-nums">{row.observations}</td>
+                      <td className="text-end tabular-nums">
                         {row.concerns > 0 ? (
                           <span className="font-medium text-red-600">{row.concerns}</span>
                         ) : (
@@ -304,7 +306,7 @@ export default async function ReportsPage({
                 href={`/reports/export?type=students&${query}`}
                 className="btn-secondary btn-sm"
               >
-                Export CSV
+                {t("action.exportCsv")}
               </a>
             }
           >
@@ -317,12 +319,12 @@ export default async function ReportsPage({
                     <tr>
                       <th>Student</th>
                       <th>Class</th>
-                      <th className="text-right">Recorded</th>
-                      <th className="text-right">Absent</th>
-                      <th className="text-right">Late</th>
-                      <th className="text-right">Excused</th>
-                      <th className="text-right">Rate</th>
-                      <th className="text-right">Concerns</th>
+                      <th className="text-end">Recorded</th>
+                      <th className="text-end">Absent</th>
+                      <th className="text-end">Late</th>
+                      <th className="text-end">Excused</th>
+                      <th className="text-end">Rate</th>
+                      <th className="text-end">Concerns</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -335,25 +337,25 @@ export default async function ReportsPage({
                           >
                             {row.name}
                           </Link>
-                          <span className="ml-2 font-mono text-xs text-ink-400">
+                          <span className="ms-2 font-mono text-xs text-ink-400">
                             {row.code}
                           </span>
                         </td>
                         <td className="text-ink-600">{row.className}</td>
-                        <td className="text-right tabular-nums">{row.recorded}</td>
-                        <td className="text-right tabular-nums">
+                        <td className="text-end tabular-nums">{row.recorded}</td>
+                        <td className="text-end tabular-nums">
                           {row.absent > 0 ? (
                             <span className="font-medium text-red-600">{row.absent}</span>
                           ) : (
                             0
                           )}
                         </td>
-                        <td className="text-right tabular-nums">{row.late}</td>
-                        <td className="text-right tabular-nums">{row.excused}</td>
-                        <td className="text-right tabular-nums">
+                        <td className="text-end tabular-nums">{row.late}</td>
+                        <td className="text-end tabular-nums">{row.excused}</td>
+                        <td className="text-end tabular-nums">
                           {row.rate === null ? "—" : `${row.rate.toFixed(0)}%`}
                         </td>
-                        <td className="text-right tabular-nums">{row.concerns}</td>
+                        <td className="text-end tabular-nums">{row.concerns}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -385,7 +387,7 @@ export default async function ReportsPage({
 
                   >
 
-                    Export by week (Excel)
+                    {t("action.exportWeekly")}
 
                   </a>
 
@@ -397,7 +399,7 @@ export default async function ReportsPage({
 
                   >
 
-                    Export CSV
+                    {t("action.exportCsv")}
 
                   </a>
 
@@ -410,9 +412,9 @@ export default async function ReportsPage({
                     <tr>
                       <th>Category</th>
                       {SENTIMENTS.map((s) => (
-                        <th key={s} className="text-right">{SENTIMENT_LABELS[s]}</th>
+                        <th key={s} className="text-end">{SENTIMENT_LABELS[s]}</th>
                       ))}
-                      <th className="text-right">Total</th>
+                      <th className="text-end">Total</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -425,7 +427,7 @@ export default async function ReportsPage({
                             {OBSERVATION_CATEGORY_LABELS[category]}
                           </td>
                           {cells.map((n, i) => (
-                            <td key={SENTIMENTS[i]} className="text-right tabular-nums">
+                            <td key={SENTIMENTS[i]} className="text-end tabular-nums">
                               {SENTIMENTS[i] === "CONCERN" && n > 0 ? (
                                 <span className="font-medium text-red-600">{n}</span>
                               ) : (
@@ -433,7 +435,7 @@ export default async function ReportsPage({
                               )}
                             </td>
                           ))}
-                          <td className="text-right font-medium tabular-nums">{total}</td>
+                          <td className="text-end font-medium tabular-nums">{total}</td>
                         </tr>
                       );
                     })}
@@ -462,7 +464,7 @@ export default async function ReportsPage({
                             excused={day.excused}
                           />
                         </div>
-                        <span className="w-12 shrink-0 text-right text-xs tabular-nums text-ink-600">
+                        <span className="w-12 shrink-0 text-end text-xs tabular-nums text-ink-600">
                           {day.rate === null ? "—" : `${day.rate.toFixed(0)}%`}
                         </span>
                       </li>

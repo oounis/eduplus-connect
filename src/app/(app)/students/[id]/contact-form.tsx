@@ -13,22 +13,27 @@ type Props = {
   phone3: string | null;
   /** False for a supervisor viewing a class that is not theirs. */
   canEdit: boolean;
+  /** Translated in the page — this is a client component. */
+  labels: {
+    email: string; phone: string; phone2: string; phone3: string;
+    save: string; saving: string; clearHint: string;
+  };
 };
 
-function SaveButton() {
+function SaveButton({ label, busy }: { label: string; busy: string }) {
   const { pending } = useFormStatus();
   return (
     <button type="submit" className="btn-primary btn-sm" disabled={pending}>
-      {pending ? "Saving…" : "Save contact details"}
+      {pending ? busy : label}
     </button>
   );
 }
 
 const FIELDS = [
-  { name: "email", label: "Email", type: "email", placeholder: "name@example.com" },
-  { name: "phone", label: "Phone", type: "tel", placeholder: "+973 …" },
-  { name: "phone2", label: "Phone 2", type: "tel", placeholder: "Second number" },
-  { name: "phone3", label: "Phone 3", type: "tel", placeholder: "Third number" },
+  { name: "email", type: "email", placeholder: "name@example.com" },
+  { name: "phone", type: "tel", placeholder: "+973 …" },
+  { name: "phone2", type: "tel", placeholder: "" },
+  { name: "phone3", type: "tel", placeholder: "" },
 ] as const;
 
 export function StudentContactForm({
@@ -38,6 +43,7 @@ export function StudentContactForm({
   phone2,
   phone3,
   canEdit,
+  labels,
 }: Props) {
   const [state, formAction] = useActionState<ActionState, FormData>(
     updateStudentContact,
@@ -58,7 +64,7 @@ export function StudentContactForm({
       <div className="grid gap-4 px-5 py-4 text-sm sm:grid-cols-4">
         {FIELDS.map((field) => (
           <div key={field.name}>
-            <p className="text-xs text-ink-500">{field.label}</p>
+            <p className="text-xs text-ink-500">{labels[field.name]}</p>
             <p className="text-ink-800">{values[field.name] || "—"}</p>
           </div>
         ))}
@@ -73,7 +79,7 @@ export function StudentContactForm({
       <div className="grid gap-4 sm:grid-cols-4">
         {FIELDS.map((field) => (
           <label key={field.name} className="block text-sm">
-            <span className="mb-1 block text-xs text-ink-500">{field.label}</span>
+            <span className="mb-1 block text-xs text-ink-500">{labels[field.name]}</span>
             <input
               name={field.name}
               type={field.type}
@@ -87,7 +93,7 @@ export function StudentContactForm({
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <SaveButton />
+        <SaveButton label={labels.save} busy={labels.saving} />
         <span aria-live="polite" className="text-sm">
           {state.error && <span className="text-rose-600">{state.error}</span>}
           {state.success && <span className="text-emerald-600">{state.success}</span>}
@@ -95,7 +101,7 @@ export function StudentContactForm({
       </div>
 
       <p className="mt-3 text-xs text-ink-500">
-        Leave a field empty to clear it. Every change is written to the audit trail.
+        {labels.clearHint}
       </p>
     </form>
   );

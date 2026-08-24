@@ -107,7 +107,7 @@ export default async function ClassDetailPage({
                     <tr>
                       <th>Code</th>
                       <th>Name</th>
-                      <th className="text-right">Status</th>
+                      <th className="text-end">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -117,7 +117,7 @@ export default async function ClassDetailPage({
                         <td className="font-medium text-ink-900">
                           {student.lastName}, {student.firstName}
                         </td>
-                        <td className="text-right">
+                        <td className="text-end">
                           {student.isActive ? (
                             <span className="badge bg-emerald-50 text-emerald-700">Active</span>
                           ) : (

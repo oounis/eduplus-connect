@@ -3,6 +3,7 @@ import { requireModule } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getCurrentYear, getVisibleClassIds } from "@/lib/queries";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
+import { getT } from "@/lib/locale";
 import { ActionForm, Disclosure } from "@/components/action-form";
 import ImportPanel from "./import-panel";
 import { createStudent, moveStudentToClass } from "./actions";
@@ -14,6 +15,7 @@ export default async function StudentsPage({
 }) {
   const user = await requireModule("students");
   const params = await searchParams;
+  const t = await getT();
   const canEdit = user.access.students.edit;
 
   const year = await getCurrentYear();
@@ -67,18 +69,18 @@ export default async function StudentsPage({
   return (
     <>
       <PageHeader
-        title="Students"
+        title={t("students.title")}
         description={
           visible === "ALL"
-            ? `All students of ${year?.name ?? "the school"}.`
-            : "Students in the classes assigned to you."
+            ? t("students.allOf", { name: year?.name ?? t("app.tagline") })
+            : t("students.assignedToYou")
         }
         actions={
           <a
             href={`/students/export${params.classId ? `?classId=${encodeURIComponent(params.classId)}` : ""}`}
             className="btn-secondary btn-sm"
           >
-            Export to Excel
+            {t("action.exportExcel")}
           </a>
         }
       />
@@ -191,7 +193,7 @@ export default async function StudentsPage({
                   <th>Name</th>
                   <th>Class</th>
                   <th>Parent</th>
-                  {canEdit && <th className="text-right">Move to class</th>}
+                  {canEdit && <th className="text-end">Move to class</th>}
                 </tr>
               </thead>
               <tbody>

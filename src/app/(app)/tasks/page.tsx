@@ -127,7 +127,7 @@ export default async function TasksPage({
                   <th>Priority</th>
                   <th>Due</th>
                   <th>Status</th>
-                  <th className="text-right">Update</th>
+                  <th className="text-end">Update</th>
                 </tr>
               </thead>
               <tbody>
@@ -155,7 +155,7 @@ export default async function TasksPage({
                       <td className="text-ink-600">
                         {task.assignee.firstName} {task.assignee.lastName}
                         {task.assigneeId === user.userId && (
-                          <span className="ml-1 text-xs text-ink-400">(you)</span>
+                          <span className="ms-1 text-xs text-ink-400">(you)</span>
                         )}
                       </td>
                       <td>

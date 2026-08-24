@@ -154,7 +154,7 @@ export default async function AuditPage({
                     </td>
                     <td>
                       <span className="text-ink-800">{event.actorName}</span>
-                      <span className="ml-2">
+                      <span className="ms-2">
                         <RoleBadge role={event.actorRole} />
                       </span>
                     </td>

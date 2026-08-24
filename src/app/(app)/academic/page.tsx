@@ -147,8 +147,8 @@ export default async function AcademicPage() {
                         <th>Term</th>
                         <th>Starts</th>
                         <th>Ends</th>
-                        <th className="text-right">Weeks</th>
-                        {canEdit && <th className="text-right">Actions</th>}
+                        <th className="text-end">Weeks</th>
+                        {canEdit && <th className="text-end">Actions</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -162,9 +162,9 @@ export default async function AcademicPage() {
                             <td className="font-medium text-ink-900">{term.name}</td>
                             <td className="text-ink-600">{formatDate(term.startDate)}</td>
                             <td className="text-ink-600">{formatDate(term.endDate)}</td>
-                            <td className="text-right tabular-nums">{weeks}</td>
+                            <td className="text-end tabular-nums">{weeks}</td>
                             {canEdit && (
-                              <td className="text-right">
+                              <td className="text-end">
                                 <form action={deleteTerm} className="flex justify-end">
                                   <input type="hidden" name="id" value={term.id} />
                                   <ConfirmSubmit

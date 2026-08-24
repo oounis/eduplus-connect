@@ -45,8 +45,19 @@ export function addDays(date: Date, days: number): Date {
   return d;
 }
 
-export function formatDate(date: Date): string {
-  return date.toLocaleDateString("en-GB", {
+/**
+ * Dates follow the interface language. Arabic uses ar-EG with Latin digits —
+ * `ar` alone would render Eastern Arabic numerals (٢٠٢٦), which do not match
+ * the Latin figures used everywhere else in the tables and read badly beside
+ * them. `-u-nu-latn` keeps the numerals Western while the month and weekday
+ * names translate.
+ */
+function intlLocale(locale?: string): string {
+  return locale === "ar" ? "ar-EG-u-nu-latn" : "en-GB";
+}
+
+export function formatDate(date: Date, locale?: string): string {
+  return date.toLocaleDateString(intlLocale(locale), {
     weekday: "short",
     day: "2-digit",
     month: "short",
@@ -55,8 +66,8 @@ export function formatDate(date: Date): string {
   });
 }
 
-export function formatShortDate(date: Date): string {
-  return date.toLocaleDateString("en-GB", {
+export function formatShortDate(date: Date, locale?: string): string {
+  return date.toLocaleDateString(intlLocale(locale), {
     day: "2-digit",
     month: "short",
     timeZone: "UTC",

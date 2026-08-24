@@ -72,7 +72,7 @@ export default function ImportPanel() {
                 {state.preview.ok} ready
               </span>
               {state.preview.skipped > 0 && (
-                <span className="ml-3 font-medium text-red-600">
+                <span className="ms-3 font-medium text-red-600">
                   {state.preview.skipped} will be skipped
                 </span>
               )}

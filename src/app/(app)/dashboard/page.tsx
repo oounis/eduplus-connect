@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getI18n, getT } from "@/lib/locale";
 import { requireModule, isSchoolWide } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatDate, formatShortDate, today, toISODate } from "@/lib/dates";
@@ -17,9 +18,10 @@ import {
   SentimentBadge,
   StatTile,
 } from "@/components/ui";
-import { OBSERVATION_CATEGORY_LABELS, ROLE_LABELS } from "@/lib/constants";
+import { OBSERVATION_CATEGORY_LABELS } from "@/lib/constants";
 
 export default async function DashboardPage() {
+  const { locale, t } = await getI18n();
   const user = await requireModule("dashboard");
   const day = today();
 
@@ -61,53 +63,49 @@ export default async function DashboardPage() {
   );
 
   const scope = isSchoolWide(user.role)
-    ? "all classes"
+    ? t("dash.allClasses")
     : `your ${attendance.length} assigned ${attendance.length === 1 ? "class" : "classes"}`;
 
   return (
     <>
       <PageHeader
-        title={`Good day, ${user.name.split(" ")[0]}`}
-        description={`${ROLE_LABELS[user.role]} · ${formatDate(day)} · ${year?.name ?? "no academic year"} · ${scope}`}
+        title={t("dash.greeting", { name: user.name.split(" ")[0] })}
+        description={`${t(`role.${user.role}`)} · ${formatDate(day, locale)} · ${year?.name ?? "—"} · ${scope}`}
       />
 
       {/* Today's attendance ------------------------------------------------ */}
       <section className="mb-8">
         <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-500">
-            Attendance — today
-          </h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-500">{t("dash.attendanceToday")}</h2>
           <Link
             href={`/attendance?date=${toISODate(day)}`}
             className="text-xs font-medium text-brand-600 hover:underline"
-          >
-            Open register →
-          </Link>
+          >{t("dash.openRegister")}</Link>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           <StatTile
-            label="Attendance rate"
+            label={t("dash.attendanceRate")}
             value={rate === null ? "—" : `${rate.toFixed(1)}%`}
-            hint={`${totals.recorded} of ${totals.enrolled} students recorded`}
+            hint={t("dash.recordedOf", { recorded: totals.recorded, enrolled: totals.enrolled })}
             tone={rate === null ? "neutral" : rate >= 90 ? "positive" : "warning"}
           />
-          <StatTile label="Present" value={totals.present} tone="positive" />
-          <StatTile label="Absent" value={totals.absent} tone="danger" />
-          <StatTile label="Late" value={totals.late} tone="warning" />
+          <StatTile label={t("attendance.PRESENT")} value={totals.present} tone="positive" />
+          <StatTile label={t("attendance.ABSENT")} value={totals.absent} tone="danger" />
+          <StatTile label={t("attendance.LATE")} value={totals.late} tone="warning" />
           <StatTile
-            label="Registers taken"
+            label={t("dash.registersTaken")}
             value={`${totals.taken}/${attendance.length}`}
             hint={
               totals.taken < attendance.length
                 ? `${attendance.length - totals.taken} still pending`
-                : "All classes complete"
+                : t("dash.allComplete")
             }
             tone={totals.taken < attendance.length ? "warning" : "positive"}
           />
         </div>
 
-        <Card className="mt-4" title="By class" subtitle={formatDate(day)}>
+        <Card className="mt-4" title={t("dash.byClass")} subtitle={formatDate(day, locale)}>
           {attendance.length === 0 ? (
             <EmptyState>No classes are assigned to you yet.</EmptyState>
           ) : (
@@ -115,14 +113,14 @@ export default async function DashboardPage() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Class</th>
-                    <th className="w-48">Breakdown</th>
-                    <th className="text-right">Present</th>
-                    <th className="text-right">Absent</th>
-                    <th className="text-right">Late</th>
-                    <th className="text-right">Excused</th>
-                    <th className="text-right">Rate</th>
-                    <th className="text-right">Status</th>
+                    <th>{t("common.class")}</th>
+                    <th className="w-48">{t("common.breakdown")}</th>
+                    <th className="text-right">{t("attendance.PRESENT")}</th>
+                    <th className="text-right">{t("attendance.ABSENT")}</th>
+                    <th className="text-right">{t("attendance.LATE")}</th>
+                    <th className="text-right">{t("attendance.EXCUSED")}</th>
+                    <th className="text-right">{t("common.rate")}</th>
+                    <th className="text-right">{t("common.status")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -133,10 +131,10 @@ export default async function DashboardPage() {
                           href={`/attendance?classId=${row.classId}&date=${toISODate(day)}`}
                           className="font-medium text-ink-900 hover:text-brand-600"
                         >
-                          {row.className}
+                          <bdi>{row.className}</bdi>
                         </Link>
                         <span className="ml-2 text-xs text-ink-400">
-                          {row.enrolled} students
+                          <bdi>{t("dash.nStudents", { n: row.enrolled })}</bdi>
                         </span>
                       </td>
                       <td>
@@ -164,9 +162,7 @@ export default async function DashboardPage() {
                       </td>
                       <td className="text-right">
                         {row.taken ? (
-                          <span className="badge bg-emerald-50 text-emerald-700">
-                            Taken
-                          </span>
+                          <span className="badge bg-emerald-50 text-emerald-700">{t("dash.taken")}</span>
                         ) : (
                           <span className="badge bg-amber-50 text-amber-700">
                             Not taken
@@ -185,36 +181,32 @@ export default async function DashboardPage() {
       {/* This week's observations ------------------------------------------ */}
       <section>
         <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-500">
-            Observations — this week
-          </h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-500">{t("dash.observationsWeek")}</h2>
           <Link
             href="/observations"
             className="text-xs font-medium text-brand-600 hover:underline"
-          >
-            Open observations →
-          </Link>
+          >{t("dash.openObservations")}</Link>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatTile
-            label="Observations logged"
+            label={t("dash.observationsLogged")}
             value={obsTotals.total}
-            hint={`${formatShortDate(observations.from)} – ${formatShortDate(observations.to)}`}
+            hint={`${formatShortDate(observations.from, locale)} – ${formatShortDate(observations.to, locale)}`}
             tone="brand"
           />
-          <StatTile label="Positive" value={obsTotals.positive} tone="positive" />
-          <StatTile label="Concerns" value={obsTotals.concern} tone="danger" />
+          <StatTile label={t("sentiment.POSITIVE")} value={obsTotals.positive} tone="positive" />
+          <StatTile label={t("common.concerns")} value={obsTotals.concern} tone="danger" />
           <StatTile
-            label="Classes with entries"
+            label={t("dash.classesWithEntries")}
             value={`${observations.rows.filter((r) => r.total > 0).length}/${observations.rows.length}`}
           />
         </div>
 
         <Card
           className="mt-4"
-          title="By class"
-          subtitle={`Week of ${formatDate(observations.from)}`}
+          title={t("dash.byClass")}
+          subtitle={`Week of ${formatDate(observations.from, locale)}`}
         >
           {observations.rows.length === 0 ? (
             <EmptyState>No classes are assigned to you yet.</EmptyState>
@@ -223,12 +215,12 @@ export default async function DashboardPage() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Class</th>
-                    <th className="text-right">Total</th>
-                    <th className="text-right">Positive</th>
-                    <th className="text-right">Neutral</th>
-                    <th className="text-right">Concern</th>
-                    <th className="text-right">Students covered</th>
+                    <th>{t("common.class")}</th>
+                    <th className="text-right">{t("common.total")}</th>
+                    <th className="text-right">{t("sentiment.POSITIVE")}</th>
+                    <th className="text-right">{t("sentiment.NEUTRAL")}</th>
+                    <th className="text-right">{t("sentiment.CONCERN")}</th>
+                    <th className="text-right">{t("dash.studentsCovered")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -239,7 +231,7 @@ export default async function DashboardPage() {
                           href={`/observations?classId=${row.classId}`}
                           className="font-medium text-ink-900 hover:text-brand-600"
                         >
-                          {row.className}
+                          <bdi>{row.className}</bdi>
                         </Link>
                       </td>
                       <td className="text-right font-medium tabular-nums">
@@ -281,6 +273,7 @@ async function FamilyDashboard({
   userId: string;
   role: string;
 }) {
+  const { locale, t } = await getI18n();
   const students = await prisma.student.findMany({
     where: role === "PARENT" ? { parentId: userId } : { userId },
     include: { class: true },
@@ -311,7 +304,7 @@ async function FamilyDashboard({
     <>
       <PageHeader
         title={role === "PARENT" ? "My children" : "My record"}
-        description={`${formatDate(day)} · attendance and observations from the last 30 days`}
+        description={`${formatDate(day, locale)} · ${t("dash.familyWindow")}`}
       />
 
       {students.length === 0 ? (
@@ -339,7 +332,7 @@ async function FamilyDashboard({
                     {student.firstName} {student.lastName}
                   </p>
                   <p className="text-xs text-ink-500">
-                    {student.class?.name ?? "Unassigned"} · {student.code}
+                    {student.class?.name ?? t("common.unassigned")} · {student.code}
                   </p>
                   <div className="mt-3 flex gap-6 text-sm">
                     <div>
@@ -357,24 +350,24 @@ async function FamilyDashboard({
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <Card title="Recent attendance">
+            <Card title={t("dash.recentAttendance")}>
               {attendance.length === 0 ? (
-                <EmptyState>No attendance recorded yet.</EmptyState>
+                <EmptyState>{t("dash.noAttendance")}</EmptyState>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="table">
                     <thead>
                       <tr>
-                        <th>Date</th>
-                        <th>Student</th>
-                        <th className="text-right">Status</th>
+                        <th>{t("common.date")}</th>
+                        <th>{t("common.student")}</th>
+                        <th className="text-right">{t("common.status")}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {attendance.slice(0, 12).map((row) => (
                         <tr key={row.id}>
                           <td className="whitespace-nowrap text-ink-500">
-                            {formatShortDate(row.date)}
+                            {formatShortDate(row.date, locale)}
                           </td>
                           <td>{row.student.firstName}</td>
                           <td className="text-right">
@@ -388,16 +381,16 @@ async function FamilyDashboard({
               )}
             </Card>
 
-            <Card title="Recent observations">
+            <Card title={t("dash.recentObservations")}>
               {observations.length === 0 ? (
-                <EmptyState>No observations recorded yet.</EmptyState>
+                <EmptyState>{t("dash.noObservations")}</EmptyState>
               ) : (
                 <ul className="divide-y divide-ink-100">
                   {observations.slice(0, 8).map((row) => (
                     <li key={row.id} className="px-5 py-3">
                       <div className="flex items-center justify-between gap-3">
                         <span className="text-xs text-ink-500">
-                          {formatShortDate(row.date)} ·{" "}
+                          {formatShortDate(row.date, locale)} ·{" "}
                           {
                             OBSERVATION_CATEGORY_LABELS[
                               row.category as keyof typeof OBSERVATION_CATEGORY_LABELS

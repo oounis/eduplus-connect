@@ -186,11 +186,11 @@ export default async function AttendancePage({
                   <tr>
                     <th>Class</th>
                     <th className="w-48">Breakdown</th>
-                    <th className="text-right">Present</th>
-                    <th className="text-right">Absent</th>
-                    <th className="text-right">Late</th>
-                    <th className="text-right">Excused</th>
-                    <th className="text-right">Status</th>
+                    <th className="text-end">Present</th>
+                    <th className="text-end">Absent</th>
+                    <th className="text-end">Late</th>
+                    <th className="text-end">Excused</th>
+                    <th className="text-end">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -212,11 +212,11 @@ export default async function AttendancePage({
                           excused={row.excused}
                         />
                       </td>
-                      <td className="text-right tabular-nums">{row.present}</td>
-                      <td className="text-right tabular-nums">{row.absent}</td>
-                      <td className="text-right tabular-nums">{row.late}</td>
-                      <td className="text-right tabular-nums">{row.excused}</td>
-                      <td className="text-right">
+                      <td className="text-end tabular-nums">{row.present}</td>
+                      <td className="text-end tabular-nums">{row.absent}</td>
+                      <td className="text-end tabular-nums">{row.late}</td>
+                      <td className="text-end tabular-nums">{row.excused}</td>
+                      <td className="text-end">
                         {row.taken ? (
                           <span className="badge bg-emerald-50 text-emerald-700">Taken</span>
                         ) : (

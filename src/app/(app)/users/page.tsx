@@ -141,7 +141,7 @@ export default async function UsersPage({
                   <th>Email</th>
                   <th>Role</th>
                   <th>Status</th>
-                  <th className="text-right">Actions</th>
+                  <th className="text-end">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -153,7 +153,7 @@ export default async function UsersPage({
                         <span>
                           {row.firstName} {row.lastName}
                           {row.id === user.userId && (
-                            <span className="ml-2 text-xs text-ink-400">(you)</span>
+                            <span className="ms-2 text-xs text-ink-400">(you)</span>
                           )}
                         </span>
                       </span>
