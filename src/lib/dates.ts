@@ -1,3 +1,5 @@
+import { schoolClock } from "./school-time";
+
 /**
  * All school days are stored as UTC midnight so that a day key is stable
  * regardless of the server timezone.
@@ -9,12 +11,17 @@ export function toDayKey(date: Date | string): Date {
   );
 }
 
-/** Today, as a UTC-midnight day key. */
+/**
+ * The school's today, as a UTC-midnight day key.
+ *
+ * Not the server's day and not the browser's. The server runs in UTC and the
+ * school does not, so for the hours where the two dates disagree — before 03:00
+ * in Bahrain, say — a UTC "today" makes the current day look like tomorrow and
+ * the register refuses to save. There was one definition of today built from
+ * the server's *local* clock and another built from *UTC*; both are now this.
+ */
 export function today(): Date {
-  const now = new Date();
-  return new Date(
-    Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0),
-  );
+  return toDayKey(schoolClock().dateISO);
 }
 
 /** "YYYY-MM-DD" for <input type="date"> and URL params. */

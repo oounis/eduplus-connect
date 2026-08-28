@@ -5,7 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { assertModule } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
-import { toDayKey } from "@/lib/dates";
+import { toDayKey, today } from "@/lib/dates";
 import { OBSERVATION_CATEGORIES, SENTIMENTS } from "@/lib/constants";
 
 export type ActionState = { error?: string; success?: string };
@@ -56,7 +56,8 @@ export async function createObservation(
   }
 
   const date = toDayKey(parsed.data.date);
-  if (date.getTime() > toDayKey(new Date()).getTime()) {
+  // The school's today, not the server's — see today() in lib/dates.
+  if (date.getTime() > today().getTime()) {
     return { error: "Observations cannot be dated in the future" };
   }
 

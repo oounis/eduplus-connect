@@ -44,12 +44,15 @@ export default async function StudentsPage({
         : visible === "ALL"
           ? {}
           : { classId: { in: classIds } }),
+      // `mode: "insensitive"` is required on Postgres: unlike SQLite, LIKE is
+      // case-sensitive there, so without it searching "ahmed" would not find
+      // "Ahmed" — a silent regression, since the query still succeeds.
       ...(query
         ? {
             OR: [
-              { firstName: { contains: query } },
-              { lastName: { contains: query } },
-              { code: { contains: query } },
+              { firstName: { contains: query, mode: "insensitive" as const } },
+              { lastName: { contains: query, mode: "insensitive" as const } },
+              { code: { contains: query, mode: "insensitive" as const } },
             ],
           }
         : {}),

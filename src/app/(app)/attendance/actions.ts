@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { assertModule } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
-import { toDayKey } from "@/lib/dates";
+import { toDayKey, today } from "@/lib/dates";
 import { ATTENDANCE_STATUSES } from "@/lib/constants";
 
 export type ActionState = { error?: string; success?: string };
@@ -42,7 +42,9 @@ export async function saveAttendance(
   }
 
   const date = toDayKey(dateValue);
-  if (date.getTime() > toDayKey(new Date()).getTime()) {
+  // The school's today, not the server's: in UTC the school's current day can
+  // still read as tomorrow, which would refuse a perfectly valid register.
+  if (date.getTime() > today().getTime()) {
     return { error: "Attendance cannot be taken for a future date" };
   }
 

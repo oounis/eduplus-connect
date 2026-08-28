@@ -1,15 +1,21 @@
 // EduPlus Connect — school management platform
-// SQLite for local development. Enums are modelled as String + app-level
-// constants because SQLite does not support native enums in Prisma.
+//
+// PostgreSQL everywhere: the same engine in development, staging and
+// production, so a query can never behave one way on a laptop and another on
+// the server. (It used to be SQLite locally and Turso/libSQL hosted — a split
+// that silently changed how `contains` matched case.)
+//
+// Enums stay modelled as String + app-level constants in src/lib/constants.ts.
+// Postgres does support native enums, but every value is already validated at
+// the edge, and a native enum turns "add a status" into a migration that locks
+// the table. The constants are the single source of truth.
 
 generator client {
-  provider        = "prisma-client-js"
-  // Needed for the libSQL adapter, which is how production talks to Turso.
-  previewFeatures = ["driverAdapters"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

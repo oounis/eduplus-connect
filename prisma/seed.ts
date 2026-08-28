@@ -7,6 +7,7 @@
  */
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { today } from "../src/lib/dates";
 import {
   DEFAULT_ROLE_ACCESS,
   MODULES,
@@ -28,11 +29,14 @@ function pick<T>(items: readonly T[]): T {
   return items[Math.floor(rand() * items.length)];
 }
 
+/**
+ * Day keys relative to the school's today — the same one the app uses.
+ * Built from this machine's clock instead, the seed writes "today" on a
+ * different date to the one the dashboard asks for whenever the two disagree,
+ * and every register then reads as not taken.
+ */
 function dayKey(offsetDays = 0): Date {
-  const now = new Date();
-  const d = new Date(
-    Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0),
-  );
+  const d = today();
   d.setUTCDate(d.getUTCDate() + offsetDays);
   return d;
 }
@@ -343,7 +347,10 @@ async function main() {
   for (let back = 0; back <= 4; back++) {
     const date = dayKey(-back);
     const weekday = date.getUTCDay();
-    if (weekday === 0 || weekday === 6) continue; // no weekend register
+    // History skips weekends, but today is always written: the dashboard is a
+    // view of today, and seeding it blank every Saturday and Sunday makes a
+    // working demo look broken — and made this suite unrunnable at weekends.
+    if (back > 0 && (weekday === 0 || weekday === 6)) continue;
 
     for (const klass of classes) {
       const supervisorLink = await prisma.classSupervisor.findFirst({

@@ -6,16 +6,12 @@
  *   ADMIN_EMAIL=… ADMIN_PASSWORD=… npx tsx scripts/seed-production.ts
  */
 import { PrismaClient } from "@prisma/client";
-import { PrismaLibSQL } from "@prisma/adapter-libsql";
 import bcrypt from "bcryptjs";
 import { DEFAULT_ROLE_ACCESS, MODULES, ROLES } from "../src/lib/constants";
 
-const url = process.env.TURSO_DATABASE_URL;
-const prisma = url
-  ? new PrismaClient({
-      adapter: new PrismaLibSQL({ url, authToken: process.env.TURSO_AUTH_TOKEN }),
-    })
-  : new PrismaClient();
+// Reads DATABASE_URL like the app does. Point it at the production database
+// (via DIRECT_URL, not the pooler) when running this.
+const prisma = new PrismaClient();
 
 async function main() {
   const email = (process.env.ADMIN_EMAIL ?? "").trim().toLowerCase();
@@ -84,10 +80,33 @@ async function main() {
     console.log(`academic year ${year.name} already exists`);
   }
 
+  // ---- the school day -----------------------------------------------------
+  // Without periods the attendance-by-period page has nothing to open on, so a
+  // fresh school gets a conventional timetable it can then edit under
+  // /periods rather than an empty screen.
+  if ((await prisma.period.count()) === 0) {
+    const plan = [
+      ["Period 1", "08:00", "08:45"],
+      ["Period 2", "08:50", "09:35"],
+      ["Period 3", "09:40", "10:25"],
+      ["Period 4", "10:45", "11:30"],
+      ["Period 5", "11:35", "12:20"],
+      ["Period 6", "13:00", "13:45"],
+      ["Period 7", "13:50", "14:35"],
+    ] as const;
+    for (const [name, startTime, endTime] of plan) {
+      await prisma.period.create({ data: { name, startTime, endTime } });
+    }
+    console.log(`school day created: ${plan.length} periods (edit under /periods)`);
+  } else {
+    console.log("school day already defined — left untouched");
+  }
+
   const counts = {
     users: await prisma.user.count(),
     students: await prisma.student.count(),
     classes: await prisma.class.count(),
+    periods: await prisma.period.count(),
   };
   console.log("current totals:", JSON.stringify(counts));
 }

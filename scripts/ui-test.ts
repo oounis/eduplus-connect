@@ -7,6 +7,7 @@
 import { chromium, type Page } from "playwright";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { today } from "../src/lib/dates";
 
 const BASE = process.argv[2] ?? "http://localhost:3100";
 const PASSWORD = process.env.SEED_PASSWORD ?? "Passw0rd!";
@@ -18,9 +19,14 @@ function check(name: string, ok: boolean, detail = "") {
   console.log(`${ok ? "  PASS" : "  FAIL"}  ${name}${detail ? ` — ${detail}` : ""}`);
 }
 
+/**
+ * The same "today" the app uses — the school's day, not this machine's.
+ * Building it from the local clock made the suite fail in the hours where the
+ * two dates disagree: the register would be asked for a date the server still
+ * considered the future.
+ */
 function todayKey(): Date {
-  const n = new Date();
-  return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()));
+  return today();
 }
 
 /**

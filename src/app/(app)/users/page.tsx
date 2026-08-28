@@ -23,12 +23,15 @@ export default async function UsersPage({
   const users = await prisma.user.findMany({
     where: {
       ...(roleFilter ? { role: roleFilter } : {}),
+      // `mode: "insensitive"` is required on Postgres: unlike SQLite, LIKE is
+      // case-sensitive there, so without it searching "ahmed" would not find
+      // "Ahmed" — a silent regression, since the query still succeeds.
       ...(query
         ? {
             OR: [
-              { firstName: { contains: query } },
-              { lastName: { contains: query } },
-              { email: { contains: query } },
+              { firstName: { contains: query, mode: "insensitive" as const } },
+              { lastName: { contains: query, mode: "insensitive" as const } },
+              { email: { contains: query, mode: "insensitive" as const } },
             ],
           }
         : {}),
