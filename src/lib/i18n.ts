@@ -15,11 +15,11 @@
  *    client just to read a string.
  */
 
-export const LOCALES = ["en", "ar"] as const;
+export const LOCALES = ["ar", "en"] as const;
 export type Locale = (typeof LOCALES)[number];
 
 export const LOCALE_COOKIE = "eduplus_locale";
-export const DEFAULT_LOCALE: Locale = "en";
+export const DEFAULT_LOCALE: Locale = "ar";
 
 export const LOCALE_META: Record<Locale, { label: string; dir: "ltr" | "rtl"; htmlLang: string }> = {
   en: { label: "English", dir: "ltr", htmlLang: "en" },
