@@ -19,6 +19,8 @@ export const AUDIT_ENTITIES = [
   "assignment",
   "task",
   "attendance",
+  "period",
+  "periodAttendance",
   "observation",
 ] as const;
 export type AuditEntity = (typeof AUDIT_ENTITIES)[number];

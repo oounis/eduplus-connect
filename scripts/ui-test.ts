@@ -4,7 +4,7 @@
  *
  *   npx tsx scripts/ui-test.ts [base-url]
  */
-import { chromium } from "playwright";
+import { chromium, type Page } from "playwright";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
@@ -23,12 +23,52 @@ function todayKey(): Date {
   return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()));
 }
 
+/**
+ * A page pinned to English.
+ *
+ * The interface defaults to Arabic, and the checks below match on English
+ * labels — without pinning, every text selector here would go looking for a
+ * string the page no longer renders.
+ */
+async function newPage(browser: Awaited<ReturnType<typeof chromium.launch>>) {
+  const page = await browser.newPage();
+  await page.context().addCookies([
+    { name: "eduplus_locale", value: "en", url: BASE },
+  ]);
+  return page;
+}
+
+/**
+ * True when the app refused the page.
+ *
+ * How a refusal arrives depends on the build. A production server answers
+ * `redirect("/denied")` with a 307 and `notFound()` with a 404; the dev server
+ * has already begun streaming by the time either is thrown, so it answers 200
+ * and puts the refusal in the body — a `<meta http-equiv="refresh">` to
+ * /denied, or the not-found page. Asserting on the status alone therefore
+ * reads "granted" for a page that was correctly blocked, which is the one
+ * failure this check must never miss.
+ */
+async function refused(
+  page: Page,
+  response: { status(): number } | null,
+): Promise<boolean> {
+  const status = response?.status() ?? 0;
+  if (status === 403 || status === 404) return true;
+
+  await page.waitForURL("**/denied", { timeout: 3000 }).catch(() => {});
+  if (page.url().includes("/denied")) return true;
+
+  const body = await page.content();
+  return /data-page="denied"|url=\/denied|could not be found/.test(body);
+}
+
 async function main() {
   const browser = await chromium.launch();
 
   // -- 1. Supervisor logs in and takes a register --------------------------
   console.log("\nSupervisor: login → take attendance");
-  const supervisorPage = await browser.newPage();
+  const supervisorPage = await newPage(browser);
   await supervisorPage.goto(`${BASE}/login`);
   await supervisorPage.fill('input[name="email"]', "supervisor2@eduplus.school");
   await supervisorPage.fill('input[name="password"]', PASSWORD);
@@ -83,7 +123,7 @@ async function main() {
 
   // -- 2b. Staff can see every register but may not write one --------------
   console.log("\nStaff: school-wide view, read-only register");
-  const staffPage = await browser.newPage();
+  const staffPage = await newPage(browser);
   await staffPage.goto(`${BASE}/login`);
   await staffPage.fill('input[name="email"]', "staff@eduplus.school");
   await staffPage.fill('input[name="password"]', PASSWORD);
@@ -99,7 +139,7 @@ async function main() {
 
   // -- 3. Teacher writes an observation ------------------------------------
   console.log("\nTeacher: login → add an observation");
-  const teacherPage = await browser.newPage();
+  const teacherPage = await newPage(browser);
   await teacherPage.goto(`${BASE}/login`);
   await teacherPage.fill('input[name="email"]', "teacher@eduplus.school");
   await teacherPage.fill('input[name="password"]', PASSWORD);
@@ -129,7 +169,7 @@ async function main() {
 
   // -- 4. Admin dashboard reflects the new attendance ----------------------
   console.log("\nAdmin: dashboard reflects the new data");
-  const adminPage = await browser.newPage();
+  const adminPage = await newPage(browser);
   await adminPage.goto(`${BASE}/login`);
   await adminPage.fill('input[name="email"]', "admin@eduplus.school");
   await adminPage.fill('input[name="password"]', PASSWORD);
@@ -146,9 +186,9 @@ async function main() {
   check("dashboard shows an attendance rate", /%/.test(rateText), rateText.replace(/\n/g, " "));
 
   // -- 5. Access control is enforced in the browser ------------------------
-  await teacherPage.goto(`${BASE}/users`);
-  check("teacher is redirected away from Users", teacherPage.url().includes("/denied"),
-    teacherPage.url());
+  const usersResponse = await teacherPage.goto(`${BASE}/users`);
+  check("teacher is redirected away from Users",
+    await refused(teacherPage, usersResponse), teacherPage.url());
 
   // -- 6. Student profile: only the right people may open it ---------------
   console.log("\nStudent profile: visibility");
@@ -159,7 +199,7 @@ async function main() {
     where: { parentId: { not: child!.parentId }, classId: { not: null } },
   });
 
-  const parentPage = await browser.newPage();
+  const parentPage = await newPage(browser);
   await parentPage.goto(`${BASE}/login`);
   await parentPage.fill('input[name="email"]', "parent@eduplus.school");
   await parentPage.fill('input[name="password"]', PASSWORD);
@@ -174,7 +214,8 @@ async function main() {
   check("a parent can open their own child's profile", seesOwnChild > 0);
 
   const strangerResponse = await parentPage.goto(`${BASE}/students/${stranger!.id}`);
-  check("a parent cannot open another family's child", strangerResponse?.status() === 404,
+  check("a parent cannot open another family's child",
+    await refused(parentPage, strangerResponse),
     `HTTP ${strangerResponse?.status()}`);
 
   // A teacher reaches the students of their own classes, and no others.
@@ -186,7 +227,7 @@ async function main() {
   check("a teacher opens a student of their own class", inResponse?.status() === 200);
   const outResponse = await teacherPage.goto(`${BASE}/students/${outOfClass!.id}`);
   check("a teacher cannot open a student outside their classes",
-    outResponse?.status() === 404, `HTTP ${outResponse?.status()}`);
+    await refused(teacherPage, outResponse), `HTTP ${outResponse?.status()}`);
 
   const historyRows = await teacherPage.goto(`${BASE}/students/${inClass!.id}?days=90`);
   check("the profile accepts a longer period", historyRows?.status() === 200);
@@ -243,7 +284,7 @@ async function main() {
   await staffPage.click('button:has-text("Change password")');
   await staffPage.waitForSelector("text=Your password was changed", { timeout: 15000 });
 
-  const relogin = await browser.newPage();
+  const relogin = await newPage(browser);
   await relogin.goto(`${BASE}/login`);
   await relogin.fill('input[name="email"]', "staff@eduplus.school");
   await relogin.fill('input[name="password"]', NEW_PASSWORD);
@@ -346,8 +387,7 @@ async function main() {
 
   const teacherAudit = await teacherPage.goto(`${BASE}/audit`);
   check("only an administrator sees the history",
-    teacherAudit?.url().includes("/denied") || teacherPage.url().includes("/denied"),
-    teacherPage.url());
+    await refused(teacherPage, teacherAudit), teacherPage.url());
 
   // -- 11. Terms drive the report period ------------------------------------
   console.log("\nReports: term periods");

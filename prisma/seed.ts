@@ -94,6 +94,8 @@ async function main() {
 
   // ---- reset (order matters: children first) -----------------------------
   await prisma.attendance.deleteMany();
+  await prisma.periodAttendance.deleteMany();
+  await prisma.period.deleteMany();
   await prisma.observation.deleteMany();
   await prisma.task.deleteMany();
   await prisma.classSupervisor.deleteMany();
@@ -316,6 +318,26 @@ async function main() {
   }
   console.log("  assignments: supervisors and teachers linked to classes");
 
+  // ---- the school day ----------------------------------------------------
+  // Seven 45-minute periods with a long break after the third — the same
+  // shape every school day, which is how the timetable is modelled.
+  const periodPlan = [
+    ["Period 1", "08:00", "08:45"],
+    ["Period 2", "08:50", "09:35"],
+    ["Period 3", "09:40", "10:25"],
+    ["Period 4", "10:45", "11:30"],
+    ["Period 5", "11:35", "12:20"],
+    ["Period 6", "13:00", "13:45"],
+    ["Period 7", "13:50", "14:35"],
+  ] as const;
+  const periods = [];
+  for (const [name, startTime, endTime] of periodPlan) {
+    periods.push(
+      await prisma.period.create({ data: { name, startTime, endTime } }),
+    );
+  }
+  console.log(`  school day: ${periods.length} periods`);
+
   // ---- attendance: today + the previous 4 school days --------------------
   let attendanceRows = 0;
   for (let back = 0; back <= 4; back++) {
@@ -360,6 +382,49 @@ async function main() {
     }
   }
   console.log(`  attendance: ${attendanceRows} records over the last 5 days`);
+
+  // ---- attendance by period ----------------------------------------------
+  // Yesterday and the four days before it, so the period report opens with
+  // something in it. Today is left to the live register.
+  let periodRows = 0;
+  for (let back = 1; back <= 5; back++) {
+    const date = dayKey(-back);
+    if (date.getUTCDay() === 0 || date.getUTCDay() === 6) continue;
+
+    for (const period of periods.slice(0, 5)) {
+      for (const klass of classes) {
+        const teacherLink = await prisma.classTeacher.findFirst({
+          where: { classId: klass.id },
+        });
+        if (!teacherLink) continue;
+
+        for (const student of students.filter((s) => s.classId === klass.id)) {
+          const roll = rand();
+          const status =
+            roll > 0.12
+              ? "PRESENT"
+              : roll > 0.06
+                ? "ABSENT"
+                : roll > 0.03
+                  ? "LATE"
+                  : "EXCUSED";
+          await prisma.periodAttendance.create({
+            data: {
+              date,
+              status,
+              studentId: student.id,
+              classId: klass.id,
+              periodId: period.id,
+              recordedById: teacherLink.userId,
+              note: status === "LATE" ? "Arrived after the bell." : null,
+            },
+          });
+          periodRows++;
+        }
+      }
+    }
+  }
+  console.log(`  period attendance: ${periodRows} records`);
 
   // ---- observations: across the current week -----------------------------
   const monday = mondayOfThisWeek();

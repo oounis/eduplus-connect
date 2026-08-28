@@ -77,6 +77,12 @@ const en: Dict = {
   "module.assignments.description": "Assign classes to supervisors and teachers",
   "module.attendance.label": "Attendance",
   "module.attendance.description": "Daily attendance register",
+  "module.periods.label": "School day",
+  "module.periods.description": "The periods of the school day, applied to every day",
+  "module.periodAttendance.label": "Attendance by period",
+  "module.periodAttendance.description": "Teachers mark their class for the period running now",
+  "module.periodReports.label": "Period reports",
+  "module.periodReports.description": "Attendance by period, day and class — exportable to Excel",
   "module.observations.label": "Observations",
   "module.observations.description": "Daily student observations",
   "module.tasks.label": "Staff tasks",
@@ -184,6 +190,98 @@ const en: Dict = {
   "common.total": "Total",
   "common.concerns": "Concerns",
 
+  // -- the school day (admin)
+  "periods.title": "The school day",
+  "periods.subtitle": "Periods run in the same order every school day. Times are the school's own clock ({tz}).",
+  "periods.add": "Add a period",
+  "periods.name": "Name",
+  "periods.namePlaceholder": "Period 1",
+  "periods.start": "Starts",
+  "periods.end": "Ends",
+  "periods.duration": "Length",
+  "periods.minutes": "{n} min",
+  "periods.create": "Add period",
+  "periods.created": "{name} was added",
+  "periods.updated": "{name} was updated",
+  "periods.deleted": "{name} was removed",
+  "periods.empty": "No periods yet. Add the first one and it will appear on the attendance page.",
+  "periods.state": "State",
+  "periods.enabled": "In use",
+  "periods.disabled": "Not in use",
+  "periods.enable": "Put in use",
+  "periods.disable": "Take out of use",
+  "periods.delete": "Delete",
+  "periods.deleteConfirm": "Delete this period and every attendance record taken in it?",
+  "periods.records": "Records",
+  "periods.nameTaken": "A period with that name already exists",
+  "periods.badTime": "Use a 24-hour time such as 08:00",
+  "periods.endBeforeStart": "The end time must come after the start time",
+  "periods.overlap": "That overlaps {name} ({start}–{end})",
+  "periods.notFound": "That period no longer exists",
+  "periods.live": "Running now",
+  "periods.readOnly": "You can see the school day but not change it. An administrator edits it here.",
+
+  // -- attendance by period
+  "pa.title": "Attendance by period",
+  "pa.subtitle": "Mark the class for the period running right now.",
+  "pa.schoolTime": "School time",
+  "pa.currentPeriod": "Period running now",
+  "pa.noLivePeriod": "No period is running",
+  "pa.between": "Between periods",
+  "pa.nextPeriod": "Next: {name} at {time}",
+  "pa.dayOver": "The school day is over",
+  "pa.teacher": "Teacher",
+  "pa.class": "Class",
+  "pa.period": "Period",
+  "pa.open": "Open",
+  "pa.live": "Live",
+  "pa.closed": "Closed",
+  "pa.notStarted": "Not started",
+  "pa.save": "Save attendance",
+  "pa.saved": "Attendance saved — {n} recorded",
+  "pa.marked": "{marked} of {total} marked",
+  "pa.quickFill": "Quick fill:",
+  "pa.allPresent": "All present",
+  "pa.noTeachers": "No teachers have been created yet.",
+  "pa.noClasses": "This teacher has no classes assigned. An administrator assigns them under Assignments.",
+  "pa.noStudents": "This class has no active students.",
+  "pa.noPeriods": "The school day has no periods yet. An administrator adds them under School day.",
+  "pa.recordedBy": "Recorded by",
+  "pa.notRecorded": "Not recorded",
+  "pa.lock.no-right": "You may look at this register but not write it.",
+  "pa.lock.no-periods": "The school day has no periods yet, so there is nothing to mark.",
+  "pa.lock.no-class": "Choose a class to mark.",
+  "pa.lock.not-assigned": "You are not the teacher of this class.",
+  "pa.lock.not-today": "A register can only be written on the day itself. An administrator can correct an earlier one.",
+  "pa.lock.not-live": "This period is not running now, so its register is closed. An administrator can still correct it.",
+  "pa.adminOverride": "You are correcting a closed register. The change is written to the history.",
+  "pa.dashboardCta": "Take attendance by period",
+  "pa.noStatus": "No status",
+
+  // -- period reports
+  "pr.title": "Attendance by period",
+  "pr.subtitle": "Per period, per day and per class over any range.",
+  "pr.from": "From",
+  "pr.to": "To",
+  "pr.classes": "Classes",
+  "pr.periods": "Periods",
+  "pr.apply": "Show report",
+  "pr.allClasses": "All classes",
+  "pr.allPeriods": "All periods",
+  "pr.selected": "{n} selected",
+  "pr.byPeriod": "By period",
+  "pr.byPeriodClass": "By period and class",
+  "pr.byDayPeriod": "By day and period",
+  "pr.exportExcel": "Export to Excel",
+  "pr.empty": "No attendance was recorded for this range.",
+  "pr.time": "Time",
+  "pr.records": "Records",
+  "pr.last7": "Last 7 days",
+  "pr.last14": "Last 14 days",
+  "pr.last30": "Last 30 days",
+  "pr.todayOnly": "Today",
+  "pr.rangeCaption": "{from} to {to} · {records} record(s)",
+
   // -- login
   "login.title": "Sign in",
   "login.subtitle": "School management platform",
@@ -272,6 +370,12 @@ const ar: Dict = {
   "module.assignments.description": "تكليف المشرفين والمعلمين بالأقسام",
   "module.attendance.label": "الحضور",
   "module.attendance.description": "سجل الحضور اليومي",
+  "module.periods.label": "اليوم الدراسي",
+  "module.periods.description": "حصص اليوم الدراسي، تُطبَّق على كل الأيام",
+  "module.periodAttendance.label": "الحضور حسب الحصة",
+  "module.periodAttendance.description": "المعلمون يسجّلون حضور قسمهم في الحصة الجارية",
+  "module.periodReports.label": "تقارير الحصص",
+  "module.periodReports.description": "الحضور حسب الحصة واليوم والقسم — قابل للتصدير إلى Excel",
   "module.observations.label": "الملاحظات",
   "module.observations.description": "الملاحظات اليومية عن الطلاب",
   "module.tasks.label": "مهام الموظفين",
@@ -379,6 +483,98 @@ const ar: Dict = {
   "common.total": "المجموع",
   "common.concerns": "حالات القلق",
 
+  // -- اليوم الدراسي (المدير)
+  "periods.title": "اليوم الدراسي",
+  "periods.subtitle": "الحصص تتكرر بالترتيب نفسه كل يوم دراسي. الأوقات بتوقيت المدرسة ({tz}).",
+  "periods.add": "إضافة حصة",
+  "periods.name": "الاسم",
+  "periods.namePlaceholder": "الحصة 1",
+  "periods.start": "تبدأ",
+  "periods.end": "تنتهي",
+  "periods.duration": "المدة",
+  "periods.minutes": "{n} دقيقة",
+  "periods.create": "إضافة الحصة",
+  "periods.created": "تمت إضافة {name}",
+  "periods.updated": "تم تحديث {name}",
+  "periods.deleted": "تم حذف {name}",
+  "periods.empty": "لا توجد حصص بعد. أضف الأولى لتظهر في صفحة الحضور.",
+  "periods.state": "الحالة",
+  "periods.enabled": "مفعّلة",
+  "periods.disabled": "غير مفعّلة",
+  "periods.enable": "تفعيل",
+  "periods.disable": "إيقاف",
+  "periods.delete": "حذف",
+  "periods.deleteConfirm": "حذف هذه الحصة وكل سجلات الحضور المأخوذة فيها؟",
+  "periods.records": "السجلات",
+  "periods.nameTaken": "توجد حصة بهذا الاسم بالفعل",
+  "periods.badTime": "استعمل صيغة 24 ساعة مثل 08:00",
+  "periods.endBeforeStart": "وقت النهاية يجب أن يكون بعد وقت البداية",
+  "periods.overlap": "هذا يتداخل مع {name} ({start}–{end})",
+  "periods.notFound": "هذه الحصة لم تعد موجودة",
+  "periods.live": "جارية الآن",
+  "periods.readOnly": "يمكنك الاطلاع على اليوم الدراسي دون تعديله. المدير هو من يعدّله هنا.",
+
+  // -- الحضور حسب الحصة
+  "pa.title": "الحضور حسب الحصة",
+  "pa.subtitle": "سجّل حضور القسم في الحصة الجارية الآن.",
+  "pa.schoolTime": "توقيت المدرسة",
+  "pa.currentPeriod": "الحصة الجارية الآن",
+  "pa.noLivePeriod": "لا توجد حصة جارية",
+  "pa.between": "بين حصتين",
+  "pa.nextPeriod": "التالية: {name} على الساعة {time}",
+  "pa.dayOver": "انتهى اليوم الدراسي",
+  "pa.teacher": "المعلم",
+  "pa.class": "القسم",
+  "pa.period": "الحصة",
+  "pa.open": "فتح",
+  "pa.live": "جارية",
+  "pa.closed": "مغلقة",
+  "pa.notStarted": "لم تبدأ",
+  "pa.save": "حفظ الحضور",
+  "pa.saved": "تم حفظ الحضور — {n} مسجَّلاً",
+  "pa.marked": "{marked} من {total} مسجَّل",
+  "pa.quickFill": "تعبئة سريعة:",
+  "pa.allPresent": "الكل حاضر",
+  "pa.noTeachers": "لم يُنشأ أي معلم بعد.",
+  "pa.noClasses": "لا توجد أقسام مكلَّف بها هذا المعلم. المدير يكلّفه بها من التكليفات.",
+  "pa.noStudents": "لا يوجد طلاب نشطون في هذا القسم.",
+  "pa.noPeriods": "لا توجد حصص في اليوم الدراسي بعد. المدير يضيفها من اليوم الدراسي.",
+  "pa.recordedBy": "سجّلها",
+  "pa.notRecorded": "غير مسجَّل",
+  "pa.lock.no-right": "يمكنك الاطلاع على هذا السجل دون الكتابة فيه.",
+  "pa.lock.no-periods": "لا توجد حصص في اليوم الدراسي بعد، فلا شيء لتسجيله.",
+  "pa.lock.no-class": "اختر قسماً لتسجيل حضوره.",
+  "pa.lock.not-assigned": "لست معلّم هذا القسم.",
+  "pa.lock.not-today": "لا يُكتب السجل إلا في يومه. المدير يمكنه تصحيح سجل سابق.",
+  "pa.lock.not-live": "هذه الحصة ليست جارية الآن، لذا أُغلق سجلها. المدير يمكنه تصحيحه.",
+  "pa.adminOverride": "أنت تصحّح سجلاً مغلقاً. سيُكتب التغيير في سجل التغييرات.",
+  "pa.dashboardCta": "تسجيل الحضور حسب الحصة",
+  "pa.noStatus": "بلا حالة",
+
+  // -- تقارير الحصص
+  "pr.title": "الحضور حسب الحصة",
+  "pr.subtitle": "حسب الحصة واليوم والقسم خلال أي فترة.",
+  "pr.from": "من",
+  "pr.to": "إلى",
+  "pr.classes": "الأقسام",
+  "pr.periods": "الحصص",
+  "pr.apply": "عرض التقرير",
+  "pr.allClasses": "كل الأقسام",
+  "pr.allPeriods": "كل الحصص",
+  "pr.selected": "{n} مختارة",
+  "pr.byPeriod": "حسب الحصة",
+  "pr.byPeriodClass": "حسب الحصة والقسم",
+  "pr.byDayPeriod": "حسب اليوم والحصة",
+  "pr.exportExcel": "تصدير إلى Excel",
+  "pr.empty": "لا يوجد حضور مسجَّل في هذه الفترة.",
+  "pr.time": "الوقت",
+  "pr.records": "السجلات",
+  "pr.last7": "آخر 7 أيام",
+  "pr.last14": "آخر 14 يوماً",
+  "pr.last30": "آخر 30 يوماً",
+  "pr.todayOnly": "اليوم",
+  "pr.rangeCaption": "من {from} إلى {to} · {records} سجلاً",
+
   // -- login
   "login.title": "تسجيل الدخول",
   "login.subtitle": "منصة إدارة المدرسة",
@@ -433,6 +629,24 @@ const ar: Dict = {
 const DICTS: Record<Locale, Dict> = { en, ar };
 
 /**
+ * Fills `{name}` placeholders in an already-looked-up string.
+ *
+ * Exported because a client component cannot be handed a translator function —
+ * RSC refuses to serialise a function across the boundary — so a component
+ * whose text changes as the user types receives the raw template and fills it
+ * here instead.
+ */
+export function fill(
+  template: string,
+  vars?: Record<string, string | number>,
+): string {
+  if (!vars) return template;
+  return template.replace(/\{(\w+)\}/g, (_, name) =>
+    name in vars ? String(vars[name]) : `{${name}}`,
+  );
+}
+
+/**
  * Look up a key. Interpolates `{name}` style placeholders.
  * Falls back to English, then to the key itself — never throws, because a
  * missing translation must not take a page down.
@@ -442,11 +656,7 @@ export function translate(
   key: string,
   vars?: Record<string, string | number>,
 ): string {
-  const raw = DICTS[locale][key] ?? DICTS.en[key] ?? key;
-  if (!vars) return raw;
-  return raw.replace(/\{(\w+)\}/g, (_, name) =>
-    name in vars ? String(vars[name]) : `{${name}}`,
-  );
+  return fill(DICTS[locale][key] ?? DICTS.en[key] ?? key, vars);
 }
 
 /** Bound translator, so callers write `t("action.save")`. */

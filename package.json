@@ -16,7 +16,10 @@
     "db:remote": "tsx scripts/db-remote.ts",
     "seed:production": "tsx scripts/seed-production.ts",
     "test": "node --test src/lib/",
-    "test:contact": "tsx scripts/contact-access-test.ts"
+    "test:contact": "tsx scripts/contact-access-test.ts",
+    "test:i18n": "tsx scripts/i18n-test.ts",
+    "test:ui": "tsx scripts/ui-test.ts",
+    "test:periods": "tsx scripts/period-test.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",

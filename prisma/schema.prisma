@@ -46,6 +46,8 @@ model User {
   attendanceRecorded  Attendance[]  @relation("AttendanceRecorder")
   observationsWritten Observation[] @relation("ObservationAuthor")
 
+  periodAttendanceRecorded PeriodAttendance[] @relation("PeriodAttendanceRecorder")
+
   tasksAssigned Task[] @relation("TaskAssignee")
   tasksCreated  Task[] @relation("TaskCreator")
 
@@ -119,6 +121,8 @@ model Class {
   attendance   Attendance[]
   observations Observation[]
 
+  periodAttendance PeriodAttendance[]
+
   @@unique([academicYearId, name])
 }
 
@@ -146,6 +150,8 @@ model Student {
   user         User?         @relation("StudentAccount", fields: [userId], references: [id], onDelete: SetNull)
   attendance   Attendance[]
   observations Observation[]
+
+  periodAttendance PeriodAttendance[]
 
   @@index([classId])
 }
@@ -218,6 +224,57 @@ model Observation {
 
   @@index([classId, date])
   @@index([date])
+  @@index([studentId])
+}
+
+// ---------------------------------------------------------------------------
+// The school day, period by period
+// ---------------------------------------------------------------------------
+
+/// One slot of the school day. The same list applies to every school day, so a
+/// period is defined once and reused all week.
+///
+/// `startTime` / `endTime` are "HH:MM" in the school's own timezone (see
+/// `src/lib/school-time.ts`), not UTC: a period is a wall-clock fact about the
+/// timetable, and storing it as an instant would move it twice a year.
+/// Periods sort by `startTime`, so there is no separate order column to drift.
+model Period {
+  id        String   @id @default(cuid())
+  name      String   @unique // "Period 1"
+  startTime String // "08:00"
+  endTime   String // "08:45"
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  attendance PeriodAttendance[]
+
+  @@index([startTime])
+}
+
+/// One row per student per period per day, written by the class teacher while
+/// that period is running. Separate from `Attendance`, which stays the
+/// supervisor's once-a-day register.
+model PeriodAttendance {
+  id           String   @id @default(cuid())
+  date         DateTime // normalised to 00:00 UTC of the school day
+  status       String // PRESENT | ABSENT | LATE | EXCUSED
+  note         String?
+  periodId     String
+  studentId    String
+  classId      String
+  recordedById String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  period     Period  @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  student    Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class      Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  recordedBy User    @relation("PeriodAttendanceRecorder", fields: [recordedById], references: [id])
+
+  @@unique([studentId, date, periodId])
+  @@index([classId, date, periodId])
+  @@index([date, periodId])
   @@index([studentId])
 }
 

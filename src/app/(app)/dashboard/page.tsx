@@ -9,6 +9,8 @@ import {
   getObservationSummaryForWeek,
   getVisibleClassIds,
 } from "@/lib/queries";
+import { getPeriods } from "@/lib/periods";
+import { findLivePeriod, findNextPeriod, schoolClock } from "@/lib/school-time";
 import {
   AttendanceBadge,
   AttendanceBar,
@@ -66,12 +68,65 @@ export default async function DashboardPage() {
     ? t("dash.allClasses")
     : `your ${attendance.length} assigned ${attendance.length === 1 ? "class" : "classes"}`;
 
+  // The period register is time-sensitive, so the way in sits at the top of the
+  // dashboard with the live period on it rather than only in the sidebar.
+  const clock = schoolClock();
+  const periods = user.access.periodAttendance?.view ? await getPeriods() : [];
+  const livePeriod = findLivePeriod(periods, clock.minutes);
+  const nextPeriod = findNextPeriod(periods, clock.minutes);
+
   return (
     <>
       <PageHeader
         title={t("dash.greeting", { name: user.name.split(" ")[0] })}
         description={`${t(`role.${user.role}`)} · ${formatDate(day, locale)} · ${year?.name ?? "—"} · ${scope}`}
       />
+
+      {/* Attendance by period --------------------------------------------- */}
+      {user.access.periodAttendance?.view && periods.length > 0 && (
+        <section
+          className={`mb-8 flex flex-wrap items-center gap-4 rounded-xl border px-5 py-4 ${
+            livePeriod
+              ? "border-emerald-200 bg-emerald-50"
+              : "border-ink-200 bg-white"
+          }`}
+        >
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-medium uppercase tracking-wide text-ink-500">
+              {t("pa.currentPeriod")} · {t("pa.schoolTime")} {clock.time}
+            </p>
+            <p
+              className={`mt-1 text-lg font-semibold ${
+                livePeriod ? "text-emerald-800" : "text-ink-700"
+              }`}
+            >
+              {livePeriod ? (
+                <>
+                  {livePeriod.name}{" "}
+                  <span className="text-sm font-normal tabular-nums">
+                    {livePeriod.startTime} – {livePeriod.endTime}
+                  </span>
+                </>
+              ) : nextPeriod ? (
+                t("pa.between")
+              ) : (
+                t("pa.dayOver")
+              )}
+            </p>
+            {nextPeriod && (
+              <p className="mt-0.5 text-xs text-ink-500">
+                {t("pa.nextPeriod", {
+                  name: nextPeriod.name,
+                  time: nextPeriod.startTime,
+                })}
+              </p>
+            )}
+          </div>
+          <Link href="/period-attendance" className="btn-primary">
+            {t("pa.dashboardCta")}
+          </Link>
+        </section>
+      )}
 
       {/* Today's attendance ------------------------------------------------ */}
       <section className="mb-8">

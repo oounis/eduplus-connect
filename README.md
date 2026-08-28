@@ -42,12 +42,14 @@ cache can leave the HTML and the chunk hashes out of step.
 
 ### Changing the schema on the hosted database
 
-Prisma cannot push a schema over libSQL, so a change is applied as SQL:
+Prisma cannot push a schema over libSQL, so a change is applied as SQL. Note
+that `migrate diff --from-url` **cannot read a `libsql://` URL** (it fails with
+P1013), so the SQL is taken from a local push and kept in `prisma/migrations/`:
 
 ```bash
-npx prisma migrate diff --from-url "$TURSO_DATABASE_URL" \
-  --to-schema-datamodel prisma/schema.prisma --script > change.sql
-TURSO_DATABASE_URL=… TURSO_AUTH_TOKEN=… npm run db:remote change.sql
+npx prisma db push                    # apply locally first
+# then read the DDL back out of dev.db and save it under prisma/migrations/
+TURSO_DATABASE_URL=… TURSO_AUTH_TOKEN=… npm run db:remote prisma/migrations/<file>.sql
 TURSO_DATABASE_URL=… TURSO_AUTH_TOKEN=… npm run db:remote     # list tables
 ```
 
@@ -79,6 +81,23 @@ and observations so the dashboards are not empty.
 - **Deputy** creates and assigns staff tasks.
 - **Supervisors** take attendance daily, one row per student per day, only for
   the classes assigned to them.
+- **Attendance is also taken period by period** (`/period-attendance`), which is
+  a separate register from the supervisor's daily one — both exist, neither
+  replaces the other. The admin defines the school day once under **School day**
+  (`/periods`): a period is a name and a start/end time, and the same list
+  applies to every school day. The page opens on the period running *now*, then
+  narrows teacher → class → students.
+
+  **A teacher writes only their own class, only today, and only while that
+  period is running.** When the period ends the register closes; an admin or
+  deputy can still correct it, and the correction is written to the history.
+  "Now" is the school's own clock — `SCHOOL_TIMEZONE`, `Asia/Bahrain` by
+  default — because the server runs in UTC and would otherwise unlock the wrong
+  period. Period times are stored as "HH:MM" wall-clock strings, not instants,
+  so the timetable does not move when the clocks change.
+- **Period reports** (`/period-reports`) aggregate any range three ways — by
+  period, by period and class, and by day and period — over one class or several
+  at once, and export as a real four-sheet Excel workbook.
 - **Teachers** write dated observations (category + sentiment + note) for the
   students of the classes assigned to them.
 - **Admin / Deputy / Staff** dashboards summarise today's attendance across all
@@ -113,10 +132,24 @@ Access is enforced in three places: the middleware (signed-in or not), each page
 
 ```bash
 bash scripts/smoke.sh            # every page for every role — granted vs denied
-npx tsx scripts/ui-test.ts       # drives the real UI in Chromium end to end
+npm run test                     # unit tests
+npm run test:i18n                # the two dictionaries agree
+npm run test:ui                  # drives the real UI in Chromium end to end
+npm run test:periods             # attendance by period, end to end
 npx tsx scripts/dev-token.ts <email>   # mint a session cookie for curl
 npm run db:sync-access           # grant a newly added module on an existing DB
 ```
+
+The browser tests pin the interface to English with the `eduplus_locale`
+cookie, because the app now opens in Arabic and every text selector would
+otherwise be looking for a string the page does not render.
+
+Both `smoke.sh` and `ui-test.ts` judge a refusal by what the page *shows*, not
+by its status code. A production server answers `redirect("/denied")` with a
+307 and `notFound()` with a 404, but the dev server has already started
+streaming and answers **200** with the refusal in the body. Checking the status
+alone scored every blocked page as "ok" and would have hidden a real access
+regression.
 
 `scripts/ui-test.ts` (39 checks) logs in as a supervisor and saves a register,
 checks a supervisor cannot reach an unassigned class, checks staff see every
@@ -137,6 +170,9 @@ already customised in `/access`.
 
 ```
 prisma/schema.prisma      data model (SQLite; enums are strings + app constants)
+prisma/migrations/        hand-applied SQL for the hosted database
+src/lib/school-time.ts    the school's wall clock, and which period is live
+src/lib/periods.ts        period queries + the one rule for who may write
 src/lib/audit.ts          append-only history writer used by every mutation
 prisma/seed.ts            demo school
 src/lib/constants.ts      roles, modules, default role→module grants
