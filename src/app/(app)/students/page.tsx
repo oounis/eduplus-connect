@@ -91,14 +91,14 @@ export default async function StudentsPage({
       {/* Filters */}
       <form className="mb-5 flex flex-wrap items-end gap-3" action="/students">
         <div>
-          <label className="label" htmlFor="classId">Class</label>
+          <label className="label" htmlFor="classId">{t("common.class")}</label>
           <select
             id="classId"
             name="classId"
             className="select w-52"
             defaultValue={selectedClass ?? ""}
           >
-            <option value="">All classes</option>
+            <option value="">{t("common.allClasses")}</option>
             {classes.map((klass) => (
               <option key={klass.id} value={klass.id}>
                 {klass.name}
@@ -107,63 +107,87 @@ export default async function StudentsPage({
           </select>
         </div>
         <div>
-          <label className="label" htmlFor="q">Search</label>
+          <label className="label" htmlFor="q">{t("action.search")}</label>
           <input
             id="q"
             name="q"
             className="input w-56"
-            placeholder="Name or code"
+            placeholder={t("stu.nameOrCode")}
             defaultValue={query}
           />
         </div>
-        <button type="submit" className="btn-secondary">Apply</button>
+        <button type="submit" className="btn-secondary">{t("common.apply")}</button>
         {(selectedClass || query) && (
-          <Link href="/students" className="btn-secondary">Clear</Link>
+          <Link href="/students" className="btn-secondary">{t("action.clear")}</Link>
         )}
       </form>
 
       {canEdit && (
         <div className="mb-6">
-          <Disclosure label="Import students from a CSV file">
-            <ImportPanel />
+          <Disclosure label={t("stu.importCsv")}>
+            <ImportPanel
+              labels={{
+                paste: t("stu.pasteCsv"),
+                columnsLead: t("stu.colsLead"),
+                and: t("stu.colsAnd"),
+                areRequired: t("stu.colsRequired"),
+                areOptional: t("stu.colsOptional"),
+                checking: t("stu.checking"),
+                check: t("stu.checkFile"),
+                // Raw templates: the client fills them as the preview changes.
+                readyTemplate: t("stu.nReady"),
+                skippedTemplate: t("stu.nSkipped"),
+                importOneTemplate: t("stu.importOne"),
+                importManyTemplate: t("stu.importN"),
+                importing: t("stu.importing"),
+                line: t("stu.line"),
+                name: t("common.name"),
+                code: t("common.code"),
+                born: t("stu.born"),
+                klass: t("common.class"),
+                parent: t("common.parent"),
+                status: t("common.status"),
+                ready: t("stu.ready"),
+              }}
+            />
           </Disclosure>
         </div>
       )}
 
       {canEdit && (
         <div className="mb-6">
-          <Disclosure label="Add a student">
-            <ActionForm action={createStudent} submitLabel="Create student" resetOnSuccess>
+          <Disclosure label={t("stu.add")}>
+            <ActionForm action={createStudent} submitLabel={t("stu.create")} resetOnSuccess>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
-                  <label className="label" htmlFor="firstName">First name</label>
+                  <label className="label" htmlFor="firstName">{t("common.firstName")}</label>
                   <input id="firstName" name="firstName" className="input" required />
                 </div>
                 <div>
-                  <label className="label" htmlFor="lastName">Last name</label>
+                  <label className="label" htmlFor="lastName">{t("common.lastName")}</label>
                   <input id="lastName" name="lastName" className="input" required />
                 </div>
                 <div>
-                  <label className="label" htmlFor="code">Code (auto if blank)</label>
+                  <label className="label" htmlFor="code">{t("stu.codeAuto")}</label>
                   <input id="code" name="code" className="input" placeholder="STU-0123" />
                 </div>
                 <div>
-                  <label className="label" htmlFor="dateOfBirth">Date of birth</label>
+                  <label className="label" htmlFor="dateOfBirth">{t("common.dateOfBirth")}</label>
                   <input id="dateOfBirth" name="dateOfBirth" type="date" className="input" />
                 </div>
                 <div>
-                  <label className="label" htmlFor="newClassId">Class</label>
+                  <label className="label" htmlFor="newClassId">{t("common.class")}</label>
                   <select id="newClassId" name="classId" className="select">
-                    <option value="">Unassigned</option>
+                    <option value="">{t("common.unassigned")}</option>
                     {classes.map((klass) => (
                       <option key={klass.id} value={klass.id}>{klass.name}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="label" htmlFor="parentId">Parent</label>
+                  <label className="label" htmlFor="parentId">{t("common.parent")}</label>
                   <select id="parentId" name="parentId" className="select">
-                    <option value="">None</option>
+                    <option value="">{t("common.none")}</option>
                     {parents.map((parent) => (
                       <option key={parent.id} value={parent.id}>
                         {parent.firstName} {parent.lastName}
@@ -178,25 +202,29 @@ export default async function StudentsPage({
       )}
 
       <Card
-        title={`${students.length} ${students.length === 1 ? "student" : "students"}`}
+        title={
+          students.length === 1
+            ? t("stu.oneStudent", { n: students.length })
+            : t("dash.nStudents", { n: students.length })
+        }
         subtitle={
           selectedClass
             ? classes.find((c) => c.id === selectedClass)?.name
-            : "All classes"
+            : t("common.allClasses")
         }
       >
         {students.length === 0 ? (
-          <EmptyState>No students match this filter.</EmptyState>
+          <EmptyState>{t("stu.noMatch")}</EmptyState>
         ) : (
           <div className="overflow-x-auto">
             <table className="table">
               <thead>
                 <tr>
-                  <th>Code</th>
-                  <th>Name</th>
-                  <th>Class</th>
-                  <th>Parent</th>
-                  {canEdit && <th className="text-end">Move to class</th>}
+                  <th>{t("common.code")}</th>
+                  <th>{t("common.name")}</th>
+                  <th>{t("common.class")}</th>
+                  <th>{t("common.parent")}</th>
+                  {canEdit && <th className="text-end">{t("stu.moveToClass")}</th>}
                 </tr>
               </thead>
               <tbody>
@@ -220,7 +248,9 @@ export default async function StudentsPage({
                           {student.class.name}
                         </Link>
                       ) : (
-                        <span className="badge bg-amber-50 text-amber-700">Unassigned</span>
+                        <span className="badge bg-amber-50 text-amber-700">
+                          {t("common.unassigned")}
+                        </span>
                       )}
                     </td>
                     <td className="text-ink-600">
@@ -234,11 +264,13 @@ export default async function StudentsPage({
                           <input type="hidden" name="id" value={student.id} />
                           <select
                             name="classId"
-                            aria-label={`Class for ${student.firstName} ${student.lastName}`}
+                            aria-label={t("stu.classFor", {
+                              name: `${student.firstName} ${student.lastName}`,
+                            })}
                             className="select w-40 py-1 text-xs"
                             defaultValue={student.classId ?? ""}
                           >
-                            <option value="">Unassigned</option>
+                            <option value="">{t("common.unassigned")}</option>
                             {classes.map((klass) => (
                               <option key={klass.id} value={klass.id}>
                                 {klass.name}
@@ -246,7 +278,7 @@ export default async function StudentsPage({
                             ))}
                           </select>
                           <button type="submit" className="btn-secondary btn-sm">
-                            Move
+                            {t("stu.move")}
                           </button>
                         </form>
                       </td>

@@ -2,11 +2,8 @@
 
 import { useState } from "react";
 import { ActionForm } from "@/components/action-form";
-import {
-  ATTENDANCE_LABELS,
-  ATTENDANCE_STATUSES,
-  type AttendanceStatus,
-} from "@/lib/constants";
+import { ATTENDANCE_STATUSES, type AttendanceStatus } from "@/lib/constants";
+import { fill } from "@/lib/i18n";
 import { saveAttendance } from "./actions";
 
 export type RegisterStudent = {
@@ -30,11 +27,31 @@ export default function Register({
   date,
   students,
   readOnly,
+  labels,
 }: {
   classId: string;
   date: string;
   students: RegisterStudent[];
   readOnly: boolean;
+  /**
+   * Translated in the page — this is a client component, so every label must
+   * be a plain string. The `*Template` entries keep their placeholders because
+   * they are filled here, not on the server.
+   */
+  labels: {
+    save: string;
+    quickFill: string;
+    allPresent: string;
+    clear: string;
+    markedTemplate: string;
+    code: string;
+    student: string;
+    status: string;
+    note: string;
+    noteForTemplate: string;
+    optional: string;
+    statusLabels: Record<AttendanceStatus, string>;
+  };
 }) {
   // Controlled so that "mark everyone present" can update the whole roster.
   const [statuses, setStatuses] = useState<Record<string, string>>(() =>
@@ -49,7 +66,7 @@ export default function Register({
   return (
     <ActionForm
       action={saveAttendance}
-      submitLabel="Save register"
+      submitLabel={labels.save}
       hideSubmit={readOnly}
     >
       <input type="hidden" name="classId" value={classId} />
@@ -57,23 +74,23 @@ export default function Register({
 
       {!readOnly && (
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-ink-500">Quick fill:</span>
+          <span className="text-xs text-ink-500">{labels.quickFill}</span>
           <button
             type="button"
             onClick={() => markAll("PRESENT")}
             className="btn-secondary btn-sm"
           >
-            All present
+            {labels.allPresent}
           </button>
           <button
             type="button"
             onClick={() => markAll("")}
             className="btn-secondary btn-sm"
           >
-            Clear
+            {labels.clear}
           </button>
           <span className="ml-auto text-xs text-ink-500">
-            {marked} of {students.length} marked
+            {fill(labels.markedTemplate, { marked, total: students.length })}
           </span>
         </div>
       )}
@@ -83,10 +100,10 @@ export default function Register({
           <table className="table">
             <thead>
               <tr>
-                <th className="w-24">Code</th>
-                <th>Student</th>
-                <th className="w-[420px]">Status</th>
-                <th className="w-56">Note</th>
+                <th className="w-24">{labels.code}</th>
+                <th>{labels.student}</th>
+                <th className="w-[420px]">{labels.status}</th>
+                <th className="w-56">{labels.note}</th>
               </tr>
             </thead>
             <tbody>
@@ -119,7 +136,7 @@ export default function Register({
                             }
                             className="sr-only"
                           />
-                          {ATTENDANCE_LABELS[status]}
+                          {labels.statusLabels[status]}
                         </label>
                       ))}
                     </div>
@@ -127,11 +144,13 @@ export default function Register({
                   <td>
                     <input
                       name={`note:${student.id}`}
-                      aria-label={`Note for ${student.firstName} ${student.lastName}`}
+                      aria-label={fill(labels.noteForTemplate, {
+                        name: `${student.firstName} ${student.lastName}`,
+                      })}
                       defaultValue={student.note}
                       disabled={readOnly}
                       className="input py-1 text-xs"
-                      placeholder="Optional"
+                      placeholder={labels.optional}
                     />
                   </td>
                 </tr>

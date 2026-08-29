@@ -3,7 +3,8 @@ import { ConfirmSubmit } from "@/components/confirm-submit";
 import Link from "next/link";
 import { requireModule } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { ROLES, ROLE_LABELS, type Role } from "@/lib/constants";
+import { ROLES, type Role } from "@/lib/constants";
+import { getI18n } from "@/lib/locale";
 import { Card, EmptyState, PageHeader, RoleBadge } from "@/components/ui";
 import { ActionForm, Disclosure } from "@/components/action-form";
 import { createUser, toggleUserActive } from "./actions";
@@ -14,6 +15,7 @@ export default async function UsersPage({
   searchParams: Promise<{ role?: string; q?: string }>;
 }) {
   const user = await requireModule("users");
+  const { t } = await getI18n();
   const params = await searchParams;
   const roleFilter = ROLES.includes(params.role as Role)
     ? (params.role as Role)
@@ -49,8 +51,8 @@ export default async function UsersPage({
   return (
     <>
       <PageHeader
-        title="Users"
-        description="Every account in the school. Only administrators can manage these."
+        title={t("module.users.label")}
+        description={t("usr.subtitle")}
       />
 
       {/* Role filter */}
@@ -63,7 +65,7 @@ export default async function UsersPage({
               : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50"
           }`}
         >
-          All ({users.length === 0 && !roleFilter ? 0 : counts.reduce((a, c) => a + c._count._all, 0)})
+          {t("common.all")} ({users.length === 0 && !roleFilter ? 0 : counts.reduce((a, c) => a + c._count._all, 0)})
         </Link>
         {ROLES.map((role) => (
           <Link
@@ -75,44 +77,44 @@ export default async function UsersPage({
                 : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50"
             }`}
           >
-            {ROLE_LABELS[role]} ({countFor(role)})
+            {t(`role.${role}`)} ({countFor(role)})
           </Link>
         ))}
       </div>
 
       {user.access.users.edit && (
         <div className="mb-6">
-          <Disclosure label="Add a new user">
-            <ActionForm action={createUser} submitLabel="Create user" resetOnSuccess>
+          <Disclosure label={t("usr.add")}>
+            <ActionForm action={createUser} submitLabel={t("usr.create")} resetOnSuccess>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="label" htmlFor="firstName">First name</label>
+                  <label className="label" htmlFor="firstName">{t("common.firstName")}</label>
                   <input id="firstName" name="firstName" className="input" required />
                 </div>
                 <div>
-                  <label className="label" htmlFor="lastName">Last name</label>
+                  <label className="label" htmlFor="lastName">{t("common.lastName")}</label>
                   <input id="lastName" name="lastName" className="input" required />
                 </div>
                 <div>
-                  <label className="label" htmlFor="email">Email</label>
+                  <label className="label" htmlFor="email">{t("common.email")}</label>
                   <input id="email" name="email" type="email" className="input" required />
                 </div>
                 <div>
-                  <label className="label" htmlFor="phone">Phone (optional)</label>
+                  <label className="label" htmlFor="phone">{t("usr.phoneOptional")}</label>
                   <input id="phone" name="phone" className="input" />
                 </div>
                 <div>
-                  <label className="label" htmlFor="role">Role</label>
+                  <label className="label" htmlFor="role">{t("common.role")}</label>
                   <select id="role" name="role" className="select" defaultValue="TEACHER">
                     {ROLES.map((role) => (
                       <option key={role} value={role}>
-                        {ROLE_LABELS[role]}
+                        {t(`role.${role}`)}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="label" htmlFor="password">Temporary password</label>
+                  <label className="label" htmlFor="password">{t("usr.tempPassword")}</label>
                   <input
                     id="password"
                     name="password"
@@ -130,21 +132,29 @@ export default async function UsersPage({
       )}
 
       <Card
-        title={`${users.length} ${users.length === 1 ? "account" : "accounts"}`}
-        subtitle={roleFilter ? `Filtered by ${ROLE_LABELS[roleFilter]}` : "All roles"}
+        title={
+          users.length === 1
+            ? t("usr.nAccount", { n: users.length })
+            : t("usr.nAccounts", { n: users.length })
+        }
+        subtitle={
+          roleFilter
+            ? t("usr.filteredBy", { role: t(`role.${roleFilter}`) })
+            : t("usr.allRoles")
+        }
       >
         {users.length === 0 ? (
-          <EmptyState>No users match this filter.</EmptyState>
+          <EmptyState>{t("usr.empty")}</EmptyState>
         ) : (
           <div className="overflow-x-auto">
             <table className="table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Status</th>
-                  <th className="text-end">Actions</th>
+                  <th>{t("periods.name")}</th>
+                  <th>{t("common.email")}</th>
+                  <th>{t("common.role")}</th>
+                  <th>{t("common.status")}</th>
+                  <th className="text-end">{t("common.actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -156,7 +166,7 @@ export default async function UsersPage({
                         <span>
                           {row.firstName} {row.lastName}
                           {row.id === user.userId && (
-                            <span className="ms-2 text-xs text-ink-400">(you)</span>
+                            <span className="ms-2 text-xs text-ink-400">{t("usr.you")}</span>
                           )}
                         </span>
                       </span>
@@ -165,9 +175,9 @@ export default async function UsersPage({
                     <td><RoleBadge role={row.role} /></td>
                     <td>
                       {row.isActive ? (
-                        <span className="badge bg-emerald-50 text-emerald-700">Active</span>
+                        <span className="badge bg-emerald-50 text-emerald-700">{t("common.active")}</span>
                       ) : (
-                        <span className="badge bg-ink-100 text-ink-500">Disabled</span>
+                        <span className="badge bg-ink-100 text-ink-500">{t("usr.disabled")}</span>
                       )}
                     </td>
                     <td>
@@ -175,20 +185,22 @@ export default async function UsersPage({
                         {user.access.users.edit && (
                           <>
                             <Link href={`/users/${row.id}`} className="btn-secondary btn-sm">
-                              Edit
+                              {t("action.edit")}
                             </Link>
                             {row.id !== user.userId && (
                               <form action={toggleUserActive}>
                                 <input type="hidden" name="id" value={row.id} />
                                 {row.isActive ? (
                                   <ConfirmSubmit
-                                    message={`Disable ${row.firstName} ${row.lastName}? They will no longer be able to sign in until re-enabled.`}
+                                    message={t("usr.disableConfirm", {
+                                      name: `${row.firstName} ${row.lastName}`,
+                                    })}
                                   >
-                                    Disable
+                                    {t("usr.disable")}
                                   </ConfirmSubmit>
                                 ) : (
                                   <button type="submit" className="btn-secondary btn-sm">
-                                    Enable
+                                    {t("usr.enable")}
                                   </button>
                                 )}
                               </form>

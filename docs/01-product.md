@@ -121,7 +121,7 @@ into a closed register.
 
 A teacher standing in front of a class does not want to type an email address
 and a password on a shared tablet. So the login page carries a second way in:
-**Take the register without signing in**.
+**تسجيل الحضور والغياب / الحصص** — "Attendance / Periods".
 
 1. Pick your name from a list.
 2. Type a short PIN.
@@ -149,6 +149,32 @@ What it deliberately is and is not:
 The PIN is stored hashed, like a password, and is never written to the audit
 trail. An administrator who forgets one sets a new one rather than reading it
 back.
+
+**The classroom register offers three states, not four** — present, absent,
+excused. "Late" is a judgement made minutes into a lesson; this page is used at
+the door with a class waiting, and a fourth button there is a fourth thing to
+get wrong. The desk register still has it, and an administrator can still set
+it, so nothing is lost from the record.
+
+**Under the register: the whole day for that class.** A row per student, a
+column per period, and a final column — **حالة الحضور النهائي**, the day's
+verdict. That column carries the status from the *last* period actually
+recorded, not the first: a student marked absent at 08:00 who arrives by the
+third period ends the day present, and that is what a parent should be told.
+The footer shows how many were away in each period and who took each register.
+
+**Export the day to Excel** — three sheets:
+
+| Sheet | Holds |
+|---|---|
+| Day by period | The grid: every student, every period, and the final status |
+| Per period | Each period with its time, **who took it**, and the present / absent / late / excused counts |
+| Final status | The day's totals by final status |
+
+The export is guarded the same way the page is: it checks the class is one the
+signed-in teacher is actually assigned to, rather than trusting the id in the
+query string — otherwise it would hand any class in the school to anyone
+holding any teacher's PIN. That is a test, not an intention.
 
 ### 6. Observations
 

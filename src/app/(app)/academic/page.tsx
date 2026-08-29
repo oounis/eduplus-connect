@@ -2,6 +2,7 @@ import { ConfirmSubmit } from "@/components/confirm-submit";
 import { requireModule } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatDate } from "@/lib/dates";
+import { getI18n } from "@/lib/locale";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
 import { ActionForm, Disclosure } from "@/components/action-form";
 import {
@@ -14,6 +15,7 @@ import {
 
 export default async function AcademicPage() {
   const user = await requireModule("academic");
+  const { locale, t } = await getI18n();
   const canEdit = user.access.academic.edit;
 
   const years = await prisma.academicYear.findMany({
@@ -27,65 +29,65 @@ export default async function AcademicPage() {
   return (
     <>
       <PageHeader
-        title="Academic years"
-        description="Define the school year and its terms. Classes, attendance and observations all hang off the current year."
+        title={t("module.academic.label")}
+        description={t("acad.subtitle")}
       />
 
       {canEdit && (
         <div className="mb-6 grid gap-4 lg:grid-cols-2">
-          <Disclosure label="Add an academic year">
+          <Disclosure label={t("acad.addYear")}>
             <ActionForm
               action={createAcademicYear}
-              submitLabel="Create year"
+              submitLabel={t("acad.createYear")}
               resetOnSuccess
             >
               <div className="grid gap-4 sm:grid-cols-3">
                 <div>
-                  <label className="label" htmlFor="name">Name</label>
+                  <label className="label" htmlFor="name">{t("periods.name")}</label>
                   <input
                     id="name"
                     name="name"
                     className="input"
-                    placeholder="2027-2028"
+                    placeholder={t("acad.namePlaceholder")}
                     required
                   />
                 </div>
                 <div>
-                  <label className="label" htmlFor="startDate">Starts</label>
+                  <label className="label" htmlFor="startDate">{t("periods.start")}</label>
                   <input id="startDate" name="startDate" type="date" className="input" required />
                 </div>
                 <div>
-                  <label className="label" htmlFor="endDate">Ends</label>
+                  <label className="label" htmlFor="endDate">{t("periods.end")}</label>
                   <input id="endDate" name="endDate" type="date" className="input" required />
                 </div>
               </div>
             </ActionForm>
           </Disclosure>
 
-          <Disclosure label="Add a term">
-            <ActionForm action={createTerm} submitLabel="Create term" resetOnSuccess>
+          <Disclosure label={t("acad.addTerm")}>
+            <ActionForm action={createTerm} submitLabel={t("acad.createTerm")} resetOnSuccess>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                  <label className="label" htmlFor="academicYearId">Academic year</label>
+                  <label className="label" htmlFor="academicYearId">{t("acad.year")}</label>
                   <select id="academicYearId" name="academicYearId" className="select" required>
                     {years.map((year) => (
                       <option key={year.id} value={year.id}>
                         {year.name}
-                        {year.isCurrent ? " (current)" : ""}
+                        {year.isCurrent ? ` ${t("acad.currentParen")}` : ""}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="label" htmlFor="termName">Term name</label>
-                  <input id="termName" name="name" className="input" placeholder="Term 1" required />
+                  <label className="label" htmlFor="termName">{t("acad.termName")}</label>
+                  <input id="termName" name="name" className="input" placeholder={t("acad.termPlaceholder")} required />
                 </div>
                 <div>
-                  <label className="label" htmlFor="termStart">Starts</label>
+                  <label className="label" htmlFor="termStart">{t("periods.start")}</label>
                   <input id="termStart" name="startDate" type="date" className="input" required />
                 </div>
                 <div>
-                  <label className="label" htmlFor="termEnd">Ends</label>
+                  <label className="label" htmlFor="termEnd">{t("periods.end")}</label>
                   <input id="termEnd" name="endDate" type="date" className="input" required />
                 </div>
               </div>
@@ -96,7 +98,7 @@ export default async function AcademicPage() {
 
       {years.length === 0 ? (
         <Card>
-          <EmptyState>No academic year has been created yet.</EmptyState>
+          <EmptyState>{t("acad.empty")}</EmptyState>
         </Card>
       ) : (
         <div className="space-y-5">
@@ -104,12 +106,16 @@ export default async function AcademicPage() {
             <Card
               key={year.id}
               title={year.name}
-              subtitle={`${formatDate(year.startDate)} → ${formatDate(year.endDate)} · ${year._count.classes} classes`}
+              subtitle={t("acad.yearMeta", {
+                from: formatDate(year.startDate, locale),
+                to: formatDate(year.endDate, locale),
+                n: year._count.classes,
+              })}
               actions={
                 <div className="flex items-center gap-2">
                   {year.isCurrent ? (
                     <span className="badge bg-emerald-50 text-emerald-700">
-                      Current year
+                      {t("acad.currentYear")}
                     </span>
                   ) : (
                     canEdit && (
@@ -117,7 +123,7 @@ export default async function AcademicPage() {
                         <form action={setCurrentYear}>
                           <input type="hidden" name="id" value={year.id} />
                           <button type="submit" className="btn-secondary btn-sm">
-                            Make current
+                            {t("acad.makeCurrent")}
                           </button>
                         </form>
                         {year._count.classes === 0 && (
@@ -125,9 +131,9 @@ export default async function AcademicPage() {
                             <input type="hidden" name="id" value={year.id} />
                             <ConfirmSubmit
                               className="btn-danger btn-sm"
-                              message={`Delete the academic year ${year.name}? This cannot be undone.`}
+                              message={t("acad.deleteYearConfirm", { name: year.name })}
                             >
-                              Delete
+                              {t("action.delete")}
                             </ConfirmSubmit>
                           </form>
                         )}
@@ -138,17 +144,17 @@ export default async function AcademicPage() {
               }
             >
               {year.terms.length === 0 ? (
-                <EmptyState>No terms defined for this year.</EmptyState>
+                <EmptyState>{t("acad.noTerms")}</EmptyState>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="table">
                     <thead>
                       <tr>
-                        <th>Term</th>
-                        <th>Starts</th>
-                        <th>Ends</th>
-                        <th className="text-end">Weeks</th>
-                        {canEdit && <th className="text-end">Actions</th>}
+                        <th>{t("acad.term")}</th>
+                        <th>{t("periods.start")}</th>
+                        <th>{t("periods.end")}</th>
+                        <th className="text-end">{t("acad.weeks")}</th>
+                        {canEdit && <th className="text-end">{t("common.actions")}</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -160,8 +166,8 @@ export default async function AcademicPage() {
                         return (
                           <tr key={term.id}>
                             <td className="font-medium text-ink-900">{term.name}</td>
-                            <td className="text-ink-600">{formatDate(term.startDate)}</td>
-                            <td className="text-ink-600">{formatDate(term.endDate)}</td>
+                            <td className="text-ink-600">{formatDate(term.startDate, locale)}</td>
+                            <td className="text-ink-600">{formatDate(term.endDate, locale)}</td>
                             <td className="text-end tabular-nums">{weeks}</td>
                             {canEdit && (
                               <td className="text-end">
@@ -169,9 +175,9 @@ export default async function AcademicPage() {
                                   <input type="hidden" name="id" value={term.id} />
                                   <ConfirmSubmit
                                     className="btn-danger btn-sm"
-                                    message={`Remove the term ${term.name}? This cannot be undone.`}
+                                    message={t("acad.deleteTermConfirm", { name: term.name })}
                                   >
-                                    Remove
+                                    {t("acad.remove")}
                                   </ConfirmSubmit>
                                 </form>
                               </td>

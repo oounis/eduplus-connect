@@ -3,8 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireModule } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { MODULES, MODULE_META, ROLES, ROLE_LABELS, type Role } from "@/lib/constants";
+import { MODULES, ROLES, type Role } from "@/lib/constants";
 import { resolveAccess } from "@/lib/auth";
+import { getI18n } from "@/lib/locale";
 import { Card, PageHeader, RoleBadge } from "@/components/ui";
 import { ActionForm } from "@/components/action-form";
 import { deleteUser, resetPassword, setQuickPin, updateUser } from "../actions";
@@ -16,6 +17,7 @@ export default async function EditUserPage({
   params: Promise<{ id: string }>;
 }) {
   const actor = await requireModule("users", "edit");
+  const { t } = await getI18n();
   const { id } = await params;
 
   const user = await prisma.user.findUnique({
@@ -38,20 +40,20 @@ export default async function EditUserPage({
         description={user.email}
         actions={
           <Link href="/users" className="btn-secondary btn-sm">
-            Back to users
+            {t("usr.backToUsers")}
           </Link>
         }
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <Card title="Account details">
+          <Card title={t("usr.accountDetails")}>
             <div className="px-5 py-4">
-              <ActionForm action={updateUser} submitLabel="Save changes">
+              <ActionForm action={updateUser} submitLabel={t("action.saveChanges")}>
                 <input type="hidden" name="id" value={user.id} />
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="label" htmlFor="firstName">First name</label>
+                    <label className="label" htmlFor="firstName">{t("common.firstName")}</label>
                     <input
                       id="firstName"
                       name="firstName"
@@ -61,7 +63,7 @@ export default async function EditUserPage({
                     />
                   </div>
                   <div>
-                    <label className="label" htmlFor="lastName">Last name</label>
+                    <label className="label" htmlFor="lastName">{t("common.lastName")}</label>
                     <input
                       id="lastName"
                       name="lastName"
@@ -71,7 +73,7 @@ export default async function EditUserPage({
                     />
                   </div>
                   <div>
-                    <label className="label" htmlFor="email">Email</label>
+                    <label className="label" htmlFor="email">{t("common.email")}</label>
                     <input
                       id="email"
                       name="email"
@@ -82,7 +84,7 @@ export default async function EditUserPage({
                     />
                   </div>
                   <div>
-                    <label className="label" htmlFor="phone">Phone</label>
+                    <label className="label" htmlFor="phone">{t("common.phone")}</label>
                     <input
                       id="phone"
                       name="phone"
@@ -91,7 +93,7 @@ export default async function EditUserPage({
                     />
                   </div>
                   <div>
-                    <label className="label" htmlFor="role">Role</label>
+                    <label className="label" htmlFor="role">{t("common.role")}</label>
                     <select
                       id="role"
                       name="role"
@@ -100,7 +102,7 @@ export default async function EditUserPage({
                     >
                       {ROLES.map((role) => (
                         <option key={role} value={role}>
-                          {ROLE_LABELS[role]}
+                          {t(`role.${role}`)}
                         </option>
                       ))}
                     </select>
@@ -110,22 +112,22 @@ export default async function EditUserPage({
             </div>
           </Card>
 
-          <Card className="mt-6" title="Reset password">
+          <Card className="mt-6" title={t("usr.resetPassword")}>
             <div className="px-5 py-4">
               <ActionForm
                 action={resetPassword}
-                submitLabel="Reset password"
+                submitLabel={t("usr.resetPassword")}
                 submitClassName="btn-secondary"
               >
                 <input type="hidden" name="id" value={user.id} />
-                <label className="label" htmlFor="password">New password</label>
+                <label className="label" htmlFor="password">{t("usr.newPassword")}</label>
                 <input
                   id="password"
                   name="password"
                   type="text"
                   className="input max-w-xs"
                   minLength={8}
-                  placeholder="At least 8 characters"
+                  placeholder={t("usr.passwordHint")}
                   required
                 />
               </ActionForm>
@@ -135,26 +137,27 @@ export default async function EditUserPage({
           {/* Quick attendance is opt-in per teacher: no PIN, and they do not
               appear on the /quick page at all. */}
           {user.role === "TEACHER" && (
-            <Card className="mt-6" title="Quick attendance PIN">
+            <Card className="mt-6" title={t("usr.quickPinTitle")}>
               <div className="px-5 py-4">
                 <p className="mb-3 text-xs text-ink-500">
-                  Lets {user.firstName} take the period register from a shared
-                  classroom device without signing in — they pick their name on
-                  the <code>/quick</code> page and type this PIN. It opens the
-                  register for the period running now, and nothing else.
+                  {t("usr.quickPinIntro", { name: user.firstName })}{" "}
+                  <code>/quick</code>{" "}
+                  {t("usr.quickPinIntro2")}{" "}
                   {user.quickPin
-                    ? " A PIN is set. Setting a new one replaces it."
-                    : " No PIN is set, so they do not appear on that page."}
-                  {" Leave the field empty and save to turn quick access off."}
+                    ? t("usr.quickPinSet")
+                    : t("usr.quickPinNotSet")}{" "}
+                  {t("usr.quickPinOff")}
                 </p>
                 <ActionForm
                   action={setQuickPin}
-                  submitLabel={user.quickPin ? "Replace PIN" : "Set PIN"}
+                  submitLabel={
+                    user.quickPin ? t("usr.replacePin") : t("usr.setPin")
+                  }
                   submitClassName="btn-secondary"
                 >
                   <input type="hidden" name="id" value={user.id} />
                   <label className="label" htmlFor="pin">
-                    {QUICK_PIN_LENGTH}-digit PIN
+                    {t("usr.pinLabel", { n: QUICK_PIN_LENGTH })}
                   </label>
                   <input
                     id="pin"
@@ -173,30 +176,30 @@ export default async function EditUserPage({
         </div>
 
         <div className="space-y-6">
-          <Card title="Role and access">
+          <Card title={t("usr.roleAndAccess")}>
             <div className="space-y-4 px-5 py-4">
               <div>
-                <p className="label">Current role</p>
+                <p className="label">{t("usr.currentRole")}</p>
                 <RoleBadge role={user.role} />
               </div>
               <div>
-                <p className="label">Modules granted by this role</p>
+                <p className="label">{t("usr.modulesGranted")}</p>
                 <ul className="space-y-1">
                   {granted.map((key) => (
                     <li key={key} className="flex items-center justify-between text-sm">
-                      <span className="text-ink-700">{MODULE_META[key].label}</span>
+                      <span className="text-ink-700">{t(`module.${key}.label`)}</span>
                       <span className="text-xs text-ink-400">
-                        {access[key].edit ? "view + edit" : "view"}
+                        {access[key].edit ? t("usr.viewEdit") : t("usr.view")}
                       </span>
                     </li>
                   ))}
                   {granted.length === 0 && (
-                    <li className="text-sm text-ink-500">No modules granted.</li>
+                    <li className="text-sm text-ink-500">{t("usr.noModules")}</li>
                   )}
                 </ul>
               </div>
               <Link href="/access" className="btn-secondary btn-sm w-full">
-                Manage access rights
+                {t("usr.manageAccess")}
               </Link>
             </div>
           </Card>
@@ -204,11 +207,11 @@ export default async function EditUserPage({
           {(user.supervisedClasses.length > 0 ||
             user.taughtClasses.length > 0 ||
             user.children.length > 0) && (
-            <Card title="Assignments">
+            <Card title={t("module.assignments.label")}>
               <div className="space-y-3 px-5 py-4 text-sm">
                 {user.supervisedClasses.length > 0 && (
                   <div>
-                    <p className="label">Supervises</p>
+                    <p className="label">{t("usr.supervises")}</p>
                     <p className="text-ink-700">
                       {user.supervisedClasses.map((c) => c.class.name).join(", ")}
                     </p>
@@ -216,7 +219,7 @@ export default async function EditUserPage({
                 )}
                 {user.taughtClasses.length > 0 && (
                   <div>
-                    <p className="label">Teaches</p>
+                    <p className="label">{t("usr.teaches")}</p>
                     <p className="text-ink-700">
                       {user.taughtClasses.map((c) => c.class.name).join(", ")}
                     </p>
@@ -224,7 +227,7 @@ export default async function EditUserPage({
                 )}
                 {user.children.length > 0 && (
                   <div>
-                    <p className="label">Children</p>
+                    <p className="label">{t("usr.children")}</p>
                     <p className="text-ink-700">
                       {user.children
                         .map((c) => `${c.firstName} ${c.lastName}`)
@@ -237,19 +240,20 @@ export default async function EditUserPage({
           )}
 
           {user.id !== actor.userId && (
-            <Card title="Danger zone">
+            <Card title={t("usr.dangerZone")}>
               <div className="px-5 py-4">
                 <p className="mb-3 text-xs text-ink-500">
-                  Deleting removes the account and everything linked to it.
-                  Disabling the account is usually the safer option.
+                  {t("usr.deleteWarning")}
                 </p>
                 <form action={deleteUser}>
                   <input type="hidden" name="id" value={user.id} />
                   <ConfirmSubmit
                     className="btn-danger btn-sm"
-                    message={`Delete ${user.firstName} ${user.lastName} and everything linked to this account? This cannot be undone.`}
+                    message={t("usr.deleteConfirm", {
+                      name: `${user.firstName} ${user.lastName}`,
+                    })}
                   >
-                    Delete this user
+                    {t("usr.deleteUser")}
                   </ConfirmSubmit>
                 </form>
               </div>

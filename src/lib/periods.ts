@@ -473,6 +473,127 @@ export async function getPeriodReport(scope: PeriodReportScope) {
   };
 }
 
+/* -------------------------------------------------------------------------- */
+/*  One class, one day, every period                                          */
+/* -------------------------------------------------------------------------- */
+
+export type DayGridCell = {
+  status: AttendanceStatus | null;
+  recordedBy: string | null;
+};
+
+export type DayGridRow = {
+  studentId: string;
+  code: string;
+  name: string;
+  /** Indexed by period id. */
+  byPeriod: Record<string, DayGridCell>;
+  /**
+   * The day's verdict: the status from the LAST period that was actually
+   * recorded. A student marked absent in period 1 who arrives by period 3 ends
+   * the day present, and that — not the first mark — is what a parent is told.
+   */
+  finalStatus: AttendanceStatus | null;
+};
+
+export type DayPeriodSummary = {
+  periodId: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  /** Who took this period's register. Blank when it was not taken. */
+  teacher: string | null;
+  present: number;
+  absent: number;
+  late: number;
+  excused: number;
+  recorded: number;
+  taken: boolean;
+};
+
+/**
+ * The whole school day for one class: a row per student, a column per period,
+ * and the final status — plus who took each period and how many were away.
+ *
+ * This is what the classroom page shows under the register and what the Excel
+ * export is built from, so the screen and the spreadsheet cannot disagree.
+ */
+export async function getClassDayGrid(classId: string, date: Date) {
+  const [periods, students, records] = await Promise.all([
+    getPeriods(),
+    prisma.student.findMany({
+      where: { classId, isActive: true },
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+      select: { id: true, code: true, firstName: true, lastName: true },
+    }),
+    prisma.periodAttendance.findMany({
+      where: { classId, date },
+      include: {
+        recordedBy: { select: { firstName: true, lastName: true } },
+      },
+    }),
+  ]);
+
+  const ordered = periods.filter((p) => p.isActive);
+  const byKey = new Map(records.map((r) => [`${r.studentId}::${r.periodId}`, r]));
+
+  const rows: DayGridRow[] = students.map((student) => {
+    const byPeriod: Record<string, DayGridCell> = {};
+    let finalStatus: AttendanceStatus | null = null;
+
+    for (const period of ordered) {
+      const record = byKey.get(`${student.id}::${period.id}`);
+      byPeriod[period.id] = {
+        status: (record?.status as AttendanceStatus) ?? null,
+        recordedBy: record
+          ? `${record.recordedBy.firstName} ${record.recordedBy.lastName}`
+          : null,
+      };
+      // Periods are chronological, so the last one seen wins.
+      if (record) finalStatus = record.status as AttendanceStatus;
+    }
+
+    return {
+      studentId: student.id,
+      code: student.code,
+      name: `${student.lastName}, ${student.firstName}`,
+      byPeriod,
+      finalStatus,
+    };
+  });
+
+  const summary: DayPeriodSummary[] = ordered.map((period) => {
+    const forPeriod = records.filter((r) => r.periodId === period.id);
+    const count = (status: string) =>
+      forPeriod.filter((r) => r.status === status).length;
+    // Whoever recorded the most rows: a period is normally taken by one
+    // person, but an admin correction can add a second name.
+    const tally = new Map<string, number>();
+    for (const record of forPeriod) {
+      const who = `${record.recordedBy.firstName} ${record.recordedBy.lastName}`;
+      tally.set(who, (tally.get(who) ?? 0) + 1);
+    }
+    const teacher =
+      [...tally.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+
+    return {
+      periodId: period.id,
+      name: period.name,
+      startTime: period.startTime,
+      endTime: period.endTime,
+      teacher,
+      present: count("PRESENT"),
+      absent: count("ABSENT"),
+      late: count("LATE"),
+      excused: count("EXCUSED"),
+      recorded: forPeriod.length,
+      taken: forPeriod.length > 0,
+    };
+  });
+
+  return { periods: ordered, rows, summary };
+}
+
 /** Every record behind the report, for the Excel detail sheet. */
 export async function getPeriodRecords(scope: PeriodReportScope) {
   if (scope.classIds.length === 0 || scope.periodIds.length === 0) return [];

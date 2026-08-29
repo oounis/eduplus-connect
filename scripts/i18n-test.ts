@@ -7,6 +7,8 @@
  * to the person reading the screen and like nothing at all to the developer.
  * This test makes that visible.
  */
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   LOCALES,
   LOCALE_META,
@@ -49,7 +51,11 @@ const arabicRange = /[\u0600-\u06FF]/;
 const untranslated = allKeys().filter((key) => {
   const ar = translate("ar", key);
   const en = translate("en", key);
-  return ar === en && !arabicRange.test(ar);
+  if (ar !== en || arabicRange.test(ar)) return false;
+  // A value with no Latin letters has nothing to translate — a year like
+  // "2027-2028", or a bare placeholder. Identical is correct there, and
+  // flagging it would train people to ignore this check.
+  return /[A-Za-z]/.test(en);
 });
 check(
   "every Arabic value is actually translated",
@@ -88,6 +94,51 @@ check(
   "isLocale rejects rubbish",
   isLocale("en") && isLocale("ar") && !isLocale("fr") && !isLocale(undefined),
 );
+
+// 8. Every key the code actually calls exists in the dictionary.
+//
+//    The checks above prove the two dictionaries agree with each other. They
+//    say nothing about whether a key a page asks for is in either of them —
+//    and a missing key does not throw, it renders the raw key. "pa.lock.foo"
+//    in front of a teacher is the failure this catches.
+const KEY_CALL = /\bt\(\s*"([a-zA-Z][\w.-]*)"/g;
+const known = new Set(allKeys());
+const used = new Map<string, string>();
+
+function scan(dir: string) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      scan(full);
+    } else if (/\.tsx?$/.test(entry.name)) {
+      const source = readFileSync(full, "utf8");
+      for (const match of source.matchAll(KEY_CALL)) {
+        if (!used.has(match[1])) used.set(match[1], full);
+      }
+    }
+  }
+}
+scan("src");
+
+// Dynamic keys are built from a known set, so check every value they can take.
+for (const status of ["PRESENT", "ABSENT", "LATE", "EXCUSED"]) {
+  used.set(`attendance.${status}`, "dynamic");
+}
+for (const reason of ["no-right", "no-periods", "no-class", "not-assigned", "not-today", "not-live"]) {
+  used.set(`pa.lock.${reason}`, "dynamic");
+}
+
+const missing = [...used.entries()].filter(
+  ([key]) => !known.has(key) && !key.includes("${"),
+);
+check(
+  "every key used in the app exists in the dictionary",
+  missing.length === 0,
+  missing.length
+    ? missing.slice(0, 12).map(([k, f]) => `${k} (${f})`).join(", ")
+    : "",
+);
+console.log(`        ${used.size} keys referenced across src/`);
 
 console.log(`\n  ${failures === 0 ? "all checks passed" : `${failures} failure(s)`}`);
 if (failures) process.exitCode = 1;

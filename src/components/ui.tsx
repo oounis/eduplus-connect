@@ -139,7 +139,13 @@ export function TaskStatusBadge({ status }: { status: string }) {
   );
 }
 
-export function RoleBadge({ role }: { role: string }) {
+/**
+ * `label` is the already-translated role name. It has to arrive pre-translated
+ * because this is rendered from both server and client trees and a translator
+ * function cannot cross the RSC boundary. Without one the badge falls back to
+ * title-casing the raw role, which is English-only.
+ */
+export function RoleBadge({ role, label }: { role: string; label?: string }) {
   const tones: Record<string, string> = {
     ADMIN: "bg-brand-50 text-brand-700",
     DEPUTY: "bg-violet-50 text-violet-700",
@@ -151,7 +157,7 @@ export function RoleBadge({ role }: { role: string }) {
   };
   return (
     <span className={`badge ${tones[role] ?? "bg-ink-100 text-ink-700"}`}>
-      {role.charAt(0) + role.slice(1).toLowerCase()}
+      {label ?? role.charAt(0) + role.slice(1).toLowerCase()}
     </span>
   );
 }

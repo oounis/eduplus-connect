@@ -1,6 +1,7 @@
 import { ConfirmSubmit } from "@/components/confirm-submit";
 import Link from "next/link";
 import { requireModule } from "@/lib/auth";
+import { getI18n } from "@/lib/locale";
 import { prisma } from "@/lib/db";
 import {
   endOfWeek,
@@ -23,12 +24,7 @@ import {
   StatTile,
 } from "@/components/ui";
 import { ActionForm, Disclosure } from "@/components/action-form";
-import {
-  OBSERVATION_CATEGORIES,
-  OBSERVATION_CATEGORY_LABELS,
-  SENTIMENTS,
-  SENTIMENT_LABELS,
-} from "@/lib/constants";
+import { OBSERVATION_CATEGORIES, SENTIMENTS } from "@/lib/constants";
 import { createObservation, deleteObservation } from "./actions";
 
 export default async function ObservationsPage({
@@ -37,6 +33,7 @@ export default async function ObservationsPage({
   searchParams: Promise<{ classId?: string; date?: string }>;
 }) {
   const user = await requireModule("observations");
+  const { locale, t } = await getI18n();
   const params = await searchParams;
 
   const year = await getCurrentYear();
@@ -110,62 +107,59 @@ export default async function ObservationsPage({
   return (
     <>
       <PageHeader
-        title="Observations"
-        description={`Week of ${formatDate(weekStart)} — ${
-          visible === "ALL" ? "all classes" : "your assigned classes"
-        }`}
+        title={t("module.observations.label")}
+        description={`${t("obs.weekOf", {
+          date: formatDate(weekStart, locale),
+        })} — ${visible === "ALL" ? t("dash.allClasses") : t("common.yourClasses")}`}
       />
 
       <form className="mb-6 flex flex-wrap items-end gap-3" action="/observations">
         <div>
-          <label className="label" htmlFor="classId">Class</label>
+          <label className="label" htmlFor="classId">{t("common.class")}</label>
           <select
             id="classId"
             name="classId"
             className="select w-56"
             defaultValue={selectedClassId ?? ""}
           >
-            {classes.length === 0 && <option value="">No classes available</option>}
+            {classes.length === 0 && <option value="">{t("common.noClassesAvailable")}</option>}
             {classes.map((klass) => (
               <option key={klass.id} value={klass.id}>{klass.name}</option>
             ))}
           </select>
         </div>
-        <button type="submit" className="btn-secondary">Show class</button>
+        <button type="submit" className="btn-secondary">{t("obs.showClass")}</button>
       </form>
 
       {classes.length === 0 ? (
         <Card>
-          <EmptyState>
-            No classes are available to you. An administrator assigns classes
-            under Assignments.
-          </EmptyState>
+          <EmptyState>{t("common.noClassesForYou")}</EmptyState>
         </Card>
       ) : (
         <>
           <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatTile label="This week" value={totals.total} tone="brand" hint="all your classes" />
-            <StatTile label="Positive" value={totals.positive} tone="positive" />
-            <StatTile label="Concerns" value={totals.concern} tone="danger" />
+            <StatTile label={t("common.thisWeek")} value={totals.total} tone="brand" hint={t("obs.allYourClasses")} />
+            <StatTile label={t("sentiment.POSITIVE")} value={totals.positive} tone="positive" />
+            <StatTile label={t("common.concerns")} value={totals.concern} tone="danger" />
             <StatTile
-              label="Entries shown"
+              label={t("obs.entriesShown")}
               value={weekObservations.length}
-              hint={selectedClassId ? "selected class" : "all classes"}
+              hint={selectedClassId ? t("obs.selectedClass") : t("dash.allClasses")}
             />
           </div>
 
           {canWrite && selectedClassId && roster.length > 0 && (
             <div className="mb-6">
-              <Disclosure label="Add an observation">
+              <Disclosure label={t("obs.add")}>
                 <ActionForm
                   action={createObservation}
-                  submitLabel="Add observation"
+                  submitLabel={t("obs.addSubmit")}
                   resetOnSuccess
                 >
                   <input type="hidden" name="classId" value={selectedClassId} />
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div>
-                      <label className="label" htmlFor="studentId">Student</label>
+                      <label className="label" htmlFor="studentId">{t("common.student")}</label>
                       <select id="studentId" name="studentId" className="select" required>
                         {roster.map((student) => (
                           <option key={student.id} value={student.id}>
@@ -175,7 +169,7 @@ export default async function ObservationsPage({
                       </select>
                     </div>
                     <div>
-                      <label className="label" htmlFor="date">Date</label>
+                      <label className="label" htmlFor="date">{t("common.date")}</label>
                       <input
                         id="date"
                         name="date"
@@ -187,33 +181,33 @@ export default async function ObservationsPage({
                       />
                     </div>
                     <div>
-                      <label className="label" htmlFor="category">Category</label>
+                      <label className="label" htmlFor="category">{t("obs.category")}</label>
                       <select id="category" name="category" className="select" defaultValue="BEHAVIOR">
                         {OBSERVATION_CATEGORIES.map((category) => (
                           <option key={category} value={category}>
-                            {OBSERVATION_CATEGORY_LABELS[category]}
+                            {t(`observation.${category}`)}
                           </option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label className="label" htmlFor="sentiment">Sentiment</label>
+                      <label className="label" htmlFor="sentiment">{t("obs.sentiment")}</label>
                       <select id="sentiment" name="sentiment" className="select" defaultValue="NEUTRAL">
                         {SENTIMENTS.map((sentiment) => (
                           <option key={sentiment} value={sentiment}>
-                            {SENTIMENT_LABELS[sentiment]}
+                            {t(`sentiment.${sentiment}`)}
                           </option>
                         ))}
                       </select>
                     </div>
                     <div className="sm:col-span-2 lg:col-span-4">
-                      <label className="label" htmlFor="note">Observation</label>
+                      <label className="label" htmlFor="note">{t("obs.observation")}</label>
                       <textarea
                         id="note"
                         name="note"
                         rows={2}
                         className="input"
-                        placeholder="What did you observe?"
+                        placeholder={t("obs.placeholder")}
                         required
                       />
                     </div>
@@ -225,8 +219,7 @@ export default async function ObservationsPage({
 
           {!isOwnClass && (
             <div className="mb-5 rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm text-ink-600">
-              You are viewing this class read-only — you are not assigned to
-              teach it.
+              {t("obs.readOnly")}
             </div>
           )}
 
@@ -234,7 +227,7 @@ export default async function ObservationsPage({
             <div className="space-y-5 lg:col-span-2">
               {days.length === 0 ? (
                 <Card>
-                  <EmptyState>No observations recorded this week.</EmptyState>
+                  <EmptyState>{t("obs.noneThisWeek")}</EmptyState>
                 </Card>
               ) : (
                 days.map((day) => {
@@ -242,8 +235,11 @@ export default async function ObservationsPage({
                   return (
                     <Card
                       key={day}
-                      title={formatDate(new Date(`${day}T00:00:00.000Z`))}
-                      subtitle={`${rows.length} ${rows.length === 1 ? "entry" : "entries"}`}
+                      title={formatDate(new Date(`${day}T00:00:00.000Z`), locale)}
+                      subtitle={t(
+                        rows.length === 1 ? "obs.entryCount" : "obs.entriesCount",
+                        { n: rows.length },
+                      )}
                     >
                       <ul className="divide-y divide-ink-100">
                         {rows.map((row) => {
@@ -259,11 +255,7 @@ export default async function ObservationsPage({
                                     {row.student.firstName} {row.student.lastName}
                                   </span>
                                   <span className="badge bg-ink-100 text-ink-600">
-                                    {
-                                      OBSERVATION_CATEGORY_LABELS[
-                                        row.category as keyof typeof OBSERVATION_CATEGORY_LABELS
-                                      ]
-                                    }
+                                    {t(`observation.${row.category}`)}
                                   </span>
                                   <SentimentBadge sentiment={row.sentiment} />
                                 </div>
@@ -272,9 +264,9 @@ export default async function ObservationsPage({
                                     <input type="hidden" name="id" value={row.id} />
                                     <ConfirmSubmit
                                       className="btn-danger btn-sm"
-                                      message="Delete this observation? This cannot be undone."
+                                      message={t("obs.deleteConfirm")}
                                     >
-                                      Delete
+                                      {t("action.delete")}
                                     </ConfirmSubmit>
                                   </form>
                                 )}
@@ -283,7 +275,7 @@ export default async function ObservationsPage({
                               <p className="mt-1 text-xs text-ink-400">
                                 {row.class.name} · {row.author.firstName}{" "}
                                 {row.author.lastName}
-                                {mine && " (you)"}
+                                {mine && ` ${t("common.you")}`}
                               </p>
                             </li>
                           );
@@ -297,11 +289,11 @@ export default async function ObservationsPage({
 
             <div>
               <Card
-                title="This week by class"
-                subtitle={`${formatShortDate(summary.from)} – ${formatShortDate(summary.to)}`}
+                title={t("obs.thisWeekByClass")}
+                subtitle={`${formatShortDate(summary.from, locale)} – ${formatShortDate(summary.to, locale)}`}
               >
                 {summary.rows.length === 0 ? (
-                  <EmptyState>No classes.</EmptyState>
+                  <EmptyState>{t("obs.noClasses")}</EmptyState>
                 ) : (
                   <ul className="divide-y divide-ink-100">
                     {summary.rows.map((row) => (
@@ -318,12 +310,15 @@ export default async function ObservationsPage({
                           </span>
                         </div>
                         <div className="mt-1 flex gap-3 text-xs text-ink-500">
-                          <span className="text-emerald-600">{row.positive} positive</span>
-                          <span>{row.neutral} neutral</span>
-                          <span className="text-red-600">{row.concern} concern</span>
+                          <span className="text-emerald-600">{t("obs.nPositive", { n: row.positive })}</span>
+                          <span>{t("obs.nNeutral", { n: row.neutral })}</span>
+                          <span className="text-red-600">{t("obs.nConcern", { n: row.concern })}</span>
                         </div>
                         <p className="mt-0.5 text-xs text-ink-400">
-                          {row.studentsCovered} of {row.enrolled} students covered
+                          {t("obs.covered", {
+                            covered: row.studentsCovered,
+                            enrolled: row.enrolled,
+                          })}
                         </p>
                       </li>
                     ))}

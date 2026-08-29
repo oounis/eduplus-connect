@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireModule } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { AUDIT_ENTITIES } from "@/lib/audit";
+import { getT } from "@/lib/locale";
 import { Card, EmptyState, PageHeader, RoleBadge, StatTile } from "@/components/ui";
 
 const PAGE_SIZE = 60;
@@ -31,6 +32,7 @@ export default async function AuditPage({
   searchParams: Promise<{ entity?: string; actor?: string; page?: string }>;
 }) {
   await requireModule("audit");
+  const t = await getT();
   const params = await searchParams;
 
   const entity =
@@ -75,18 +77,18 @@ export default async function AuditPage({
   return (
     <>
       <PageHeader
-        title="History"
-        description="Every change to accounts, access rights, classes, students, assignments, tasks and registers"
+        title={t("module.audit.label")}
+        description={t("aud.subtitle")}
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile label="Events recorded" value={total} />
-        <StatTile label="Last 24 hours" value={todayCount} tone="brand" />
-        <StatTile label="People acting" value={actors.length} />
+        <StatTile label={t("aud.eventsRecorded")} value={total} />
+        <StatTile label={t("aud.last24")} value={todayCount} tone="brand" />
+        <StatTile label={t("aud.peopleActing")} value={actors.length} />
         <StatTile
-          label="Showing"
+          label={t("aud.showing")}
           value={`${events.length}`}
-          hint={`page ${page} of ${pages}`}
+          hint={t("aud.pageHint", { page, pages })}
         />
       </div>
 
@@ -96,7 +98,7 @@ export default async function AuditPage({
           href="/audit"
           className={`badge ${!entity && !actorId ? "bg-brand-50 text-brand-700" : "bg-ink-100 text-ink-600"}`}
         >
-          Everything
+          {t("aud.everything")}
         </Link>
         {AUDIT_ENTITIES.map((key) => (
           <Link
@@ -112,7 +114,7 @@ export default async function AuditPage({
       {actors.length > 0 && (
         <div className="mb-6 flex flex-wrap items-center gap-2">
           <span className="text-xs font-medium uppercase tracking-wide text-ink-500">
-            By person
+            {t("aud.byPerson")}
           </span>
           {actors.map((a) => (
             <Link
@@ -129,21 +131,25 @@ export default async function AuditPage({
         </div>
       )}
 
-      <Card title={`${total} ${total === 1 ? "event" : "events"}`}>
+      <Card
+        title={
+          total === 1
+            ? t("aud.eventsOne", { n: total })
+            : t("aud.eventsMany", { n: total })
+        }
+      >
         {events.length === 0 ? (
-          <EmptyState>
-            Nothing has been recorded for this filter yet.
-          </EmptyState>
+          <EmptyState>{t("aud.empty")}</EmptyState>
         ) : (
           <div className="overflow-x-auto">
             <table className="table">
               <thead>
                 <tr>
-                  <th className="w-36">When</th>
-                  <th className="w-48">Who</th>
-                  <th className="w-24">Action</th>
-                  <th className="w-24">On</th>
-                  <th>What changed</th>
+                  <th className="w-36">{t("aud.when")}</th>
+                  <th className="w-48">{t("aud.who")}</th>
+                  <th className="w-24">{t("aud.action")}</th>
+                  <th className="w-24">{t("aud.on")}</th>
+                  <th>{t("aud.whatChanged")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -155,7 +161,10 @@ export default async function AuditPage({
                     <td>
                       <span className="text-ink-800">{event.actorName}</span>
                       <span className="ms-2">
-                        <RoleBadge role={event.actorRole} />
+                        <RoleBadge
+                          role={event.actorRole}
+                          label={t(`role.${event.actorRole}`)}
+                        />
                       </span>
                     </td>
                     <td>
@@ -178,17 +187,17 @@ export default async function AuditPage({
           <div className="flex items-center justify-between border-t border-ink-200 px-5 py-3">
             {page > 1 ? (
               <Link href={link({ page: String(page - 1) })} className="btn-secondary btn-sm">
-                ← Newer
+                {t("aud.newer")}
               </Link>
             ) : (
               <span />
             )}
             <span className="text-xs text-ink-500">
-              Page {page} of {pages}
+              {t("aud.pageOf", { page, pages })}
             </span>
             {page < pages ? (
               <Link href={link({ page: String(page + 1) })} className="btn-secondary btn-sm">
-                Older →
+                {t("aud.older")}
               </Link>
             ) : (
               <span />

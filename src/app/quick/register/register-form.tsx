@@ -4,16 +4,25 @@ import { useActionState, useState } from "react";
 import { SubmitButton } from "@/components/action-form";
 import { showToast } from "@/components/toast";
 import { fill } from "@/lib/i18n";
-import { ATTENDANCE_STATUSES, type AttendanceStatus } from "@/lib/constants";
+import type { AttendanceStatus } from "@/lib/constants";
 import type { PeriodRosterStudent } from "@/lib/periods";
 import { saveQuickAttendance, type QuickState } from "../actions";
 
-const TONES: Record<AttendanceStatus, string> = {
+const TONES: Record<string, string> = {
   PRESENT: "has-checked:border-emerald-400 has-checked:bg-emerald-50 has-checked:text-emerald-800",
   ABSENT: "has-checked:border-red-400 has-checked:bg-red-50 has-checked:text-red-800",
-  LATE: "has-checked:border-amber-400 has-checked:bg-amber-50 has-checked:text-amber-800",
   EXCUSED: "has-checked:border-sky-400 has-checked:bg-sky-50 has-checked:text-sky-800",
 };
+
+/**
+ * Present, absent, excused — three, not the four the desk register offers.
+ *
+ * "Late" is a judgement made minutes into a lesson; this page is used at the
+ * door with a class waiting, and a fourth button there is a fourth thing to
+ * get wrong. The desk register still has it, and an administrator can still
+ * set it, so nothing is lost from the record.
+ */
+const CLASSROOM_STATUSES = ["PRESENT", "ABSENT", "EXCUSED"] as const;
 
 /**
  * The register as it appears on a classroom device: one row per student, big
@@ -67,18 +76,29 @@ export default function QuickRegister({
       <input type="hidden" name="periodId" value={periodId} />
 
       {!readOnly && (
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-ink-500">{labels.quickFill}</span>
-          <button type="button" onClick={() => markAll("PRESENT")} className="btn-secondary btn-sm">
-            {labels.allPresent}
-          </button>
-          <button type="button" onClick={() => markAll("")} className="btn-secondary btn-sm">
-            {labels.clear}
-          </button>
-          <span className="ms-auto text-xs text-ink-500">
-            {fill(labels.markedTemplate, { marked, total: students.length })}
-          </span>
-        </div>
+        <>
+          {/* Save at the top as well as the bottom: with thirty students the
+              bottom button is a long scroll away, and the teacher usually
+              finishes by tapping "all present" and one or two exceptions. */}
+          <div className="mb-3">
+            <SubmitButton className="btn-primary w-full py-3">
+              {labels.save}
+            </SubmitButton>
+          </div>
+
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <span className="text-xs text-ink-500">{labels.quickFill}</span>
+            <button type="button" onClick={() => markAll("PRESENT")} className="btn-secondary btn-sm">
+              {labels.allPresent}
+            </button>
+            <button type="button" onClick={() => markAll("")} className="btn-secondary btn-sm">
+              {labels.clear}
+            </button>
+            <span className="ms-auto text-xs text-ink-500">
+              {fill(labels.markedTemplate, { marked, total: students.length })}
+            </span>
+          </div>
+        </>
       )}
 
       <div className="space-y-2">
@@ -90,8 +110,8 @@ export default function QuickRegister({
                 {student.code}
               </span>
             </p>
-            <div className="grid grid-cols-4 gap-1.5">
-              {ATTENDANCE_STATUSES.map((status) => (
+            <div className="grid grid-cols-3 gap-1.5">
+              {CLASSROOM_STATUSES.map((status) => (
                 <label
                   key={status}
                   className={`cursor-pointer rounded-lg border border-ink-200 px-2 py-2 text-center text-xs text-ink-600 transition-colors ${TONES[status]} ${

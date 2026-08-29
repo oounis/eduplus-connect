@@ -1,10 +1,11 @@
 import { ConfirmSubmit } from "@/components/confirm-submit";
 import { requireModule } from "@/lib/auth";
+import { getI18n } from "@/lib/locale";
 import { prisma } from "@/lib/db";
 import { formatDate, today } from "@/lib/dates";
 import { Card, EmptyState, PageHeader, StatTile, TaskStatusBadge } from "@/components/ui";
 import { ActionForm, Disclosure } from "@/components/action-form";
-import { TASK_PRIORITIES, TASK_STATUSES, TASK_STATUS_LABELS } from "@/lib/constants";
+import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
 import { createTask, deleteTask, updateTaskStatus } from "./actions";
 
 const PRIORITY_TONES: Record<string, string> = {
@@ -19,6 +20,7 @@ export default async function TasksPage({
   searchParams: Promise<{ view?: string }>;
 }) {
   const user = await requireModule("tasks");
+  const { locale, t } = await getI18n();
   const params = await searchParams;
   const canEdit = user.access.tasks.edit;
 
@@ -48,36 +50,36 @@ export default async function TasksPage({
   return (
     <>
       <PageHeader
-        title="Staff tasks"
+        title={t("module.tasks.label")}
         description={
           canEdit
-            ? "Tasks the deputy assigns to staff, with their current status."
-            : "Tasks assigned to you."
+            ? t("tsk.subtitleAll")
+            : t("tsk.subtitleMine")
         }
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile label="Open" value={open.length} tone="brand" />
-        <StatTile label="Due today" value={dueToday.length} tone="warning" />
-        <StatTile label="Overdue" value={overdue.length} tone="danger" />
+        <StatTile label={t("tsk.open")} value={open.length} tone="brand" />
+        <StatTile label={t("tsk.dueToday")} value={dueToday.length} tone="warning" />
+        <StatTile label={t("tsk.overdue")} value={overdue.length} tone="danger" />
         <StatTile
-          label="Completed"
-          value={tasks.filter((t) => t.status === "DONE").length}
+          label={t("tsk.completed")}
+          value={tasks.filter((task) => task.status === "DONE").length}
           tone="positive"
         />
       </div>
 
       {canEdit && (
         <div className="mb-6">
-          <Disclosure label="Assign a new task">
-            <ActionForm action={createTask} submitLabel="Assign task" resetOnSuccess>
+          <Disclosure label={t("tsk.assignNew")}>
+            <ActionForm action={createTask} submitLabel={t("tsk.assign")} resetOnSuccess>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="sm:col-span-2">
-                  <label className="label" htmlFor="title">Title</label>
+                  <label className="label" htmlFor="title">{t("tsk.titleField")}</label>
                   <input id="title" name="title" className="input" required />
                 </div>
                 <div>
-                  <label className="label" htmlFor="assigneeId">Assign to</label>
+                  <label className="label" htmlFor="assigneeId">{t("tsk.assignTo")}</label>
                   <select id="assigneeId" name="assigneeId" className="select" required>
                     {staff.map((member) => (
                       <option key={member.id} value={member.id}>
@@ -88,21 +90,21 @@ export default async function TasksPage({
                   </select>
                 </div>
                 <div>
-                  <label className="label" htmlFor="priority">Priority</label>
+                  <label className="label" htmlFor="priority">{t("tsk.priority")}</label>
                   <select id="priority" name="priority" className="select" defaultValue="MEDIUM">
                     {TASK_PRIORITIES.map((priority) => (
                       <option key={priority} value={priority}>
-                        {priority.charAt(0) + priority.slice(1).toLowerCase()}
+                        {t(`priority.${priority}`)}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div className="sm:col-span-2 lg:col-span-3">
-                  <label className="label" htmlFor="description">Description</label>
+                  <label className="label" htmlFor="description">{t("tsk.description")}</label>
                   <textarea id="description" name="description" rows={2} className="input" />
                 </div>
                 <div>
-                  <label className="label" htmlFor="dueDate">Due date</label>
+                  <label className="label" htmlFor="dueDate">{t("tsk.dueDate")}</label>
                   <input id="dueDate" name="dueDate" type="date" className="input" />
                 </div>
               </div>
@@ -112,22 +114,22 @@ export default async function TasksPage({
       )}
 
       <Card
-        title={mineOnly ? "My tasks" : "All tasks"}
-        subtitle={`${tasks.length} total`}
+        title={mineOnly ? t("tsk.myTasks") : t("tsk.allTasks")}
+        subtitle={t("tsk.total", { n: tasks.length })}
       >
         {tasks.length === 0 ? (
-          <EmptyState>No tasks yet.</EmptyState>
+          <EmptyState>{t("tsk.empty")}</EmptyState>
         ) : (
           <div className="overflow-x-auto">
             <table className="table">
               <thead>
                 <tr>
-                  <th>Task</th>
-                  <th>Assigned to</th>
-                  <th>Priority</th>
-                  <th>Due</th>
-                  <th>Status</th>
-                  <th className="text-end">Update</th>
+                  <th>{t("tsk.task")}</th>
+                  <th>{t("tsk.assignedTo")}</th>
+                  <th>{t("tsk.priority")}</th>
+                  <th>{t("tsk.due")}</th>
+                  <th>{t("common.status")}</th>
+                  <th className="text-end">{t("tsk.update")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -149,24 +151,26 @@ export default async function TasksPage({
                           </p>
                         )}
                         <p className="mt-0.5 text-xs text-ink-400">
-                          by {task.createdBy.firstName} {task.createdBy.lastName}
+                          {t("tsk.by", {
+                            name: `${task.createdBy.firstName} ${task.createdBy.lastName}`,
+                          })}
                         </p>
                       </td>
                       <td className="text-ink-600">
                         {task.assignee.firstName} {task.assignee.lastName}
                         {task.assigneeId === user.userId && (
-                          <span className="ms-1 text-xs text-ink-400">(you)</span>
+                          <span className="ms-1 text-xs text-ink-400">{t("common.you")}</span>
                         )}
                       </td>
                       <td>
                         <span className={`badge ${PRIORITY_TONES[task.priority]}`}>
-                          {task.priority.charAt(0) + task.priority.slice(1).toLowerCase()}
+                          {t(`priority.${task.priority}`)}
                         </span>
                       </td>
                       <td className="whitespace-nowrap">
                         {task.dueDate ? (
                           <span className={isOverdue ? "font-medium text-red-600" : "text-ink-600"}>
-                            {formatDate(task.dueDate)}
+                            {formatDate(task.dueDate, locale)}
                           </span>
                         ) : (
                           <span className="text-ink-400">—</span>
@@ -180,18 +184,18 @@ export default async function TasksPage({
                               <input type="hidden" name="id" value={task.id} />
                               <select
                                 name="status"
-                                aria-label={`Status of ${task.title}`}
+                                aria-label={t("tsk.statusOf", { title: task.title })}
                                 defaultValue={task.status}
                                 className="select w-32 py-1 text-xs"
                               >
                                 {TASK_STATUSES.map((status) => (
                                   <option key={status} value={status}>
-                                    {TASK_STATUS_LABELS[status]}
+                                    {t(`task.${status}`)}
                                   </option>
                                 ))}
                               </select>
                               <button type="submit" className="btn-secondary btn-sm">
-                                Set
+                                {t("tsk.set")}
                               </button>
                             </form>
                           )}
@@ -200,9 +204,9 @@ export default async function TasksPage({
                               <input type="hidden" name="id" value={task.id} />
                               <ConfirmSubmit
                                 className="btn-danger btn-sm"
-                                message={`Delete the task "${task.title}"? This cannot be undone.`}
+                                message={t("tsk.deleteConfirm", { title: task.title })}
                               >
-                                Delete
+                                {t("action.delete")}
                               </ConfirmSubmit>
                             </form>
                           )}

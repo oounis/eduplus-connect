@@ -2,12 +2,14 @@ import Link from "next/link";
 import { requireModule } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getCurrentYear } from "@/lib/queries";
+import { getI18n } from "@/lib/locale";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
 import { ActionForm, Disclosure } from "@/components/action-form";
 import { createClass } from "./actions";
 
 export default async function ClassesPage() {
   const user = await requireModule("classes");
+  const { t } = await getI18n();
   const canEdit = user.access.classes.edit;
 
   const year = await getCurrentYear();
@@ -30,38 +32,38 @@ export default async function ClassesPage() {
   return (
     <>
       <PageHeader
-        title="Classes"
+        title={t("common.classes")}
         description={
           year
-            ? `Classes of ${year.name}, the current academic year.`
-            : "No academic year is marked as current yet."
+            ? t("cls.subtitle", { name: year.name })
+            : t("cls.noCurrentYear")
         }
         actions={
           <Link href="/assignments" className="btn-secondary btn-sm">
-            Manage assignments
+            {t("cls.manageAssignments")}
           </Link>
         }
       />
 
       {canEdit && year && (
         <div className="mb-6">
-          <Disclosure label="Add a class">
-            <ActionForm action={createClass} submitLabel="Create class" resetOnSuccess>
+          <Disclosure label={t("cls.add")}>
+            <ActionForm action={createClass} submitLabel={t("cls.create")} resetOnSuccess>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                 <div>
-                  <label className="label" htmlFor="name">Class name</label>
-                  <input id="name" name="name" className="input" placeholder="Grade 5 - C" required />
+                  <label className="label" htmlFor="name">{t("cls.name")}</label>
+                  <input id="name" name="name" className="input" placeholder={t("cls.namePlaceholder")} required />
                 </div>
                 <div>
-                  <label className="label" htmlFor="level">Level</label>
-                  <input id="level" name="level" className="input" placeholder="Grade 5" required />
+                  <label className="label" htmlFor="level">{t("common.level")}</label>
+                  <input id="level" name="level" className="input" placeholder={t("cls.levelPlaceholder")} required />
                 </div>
                 <div>
-                  <label className="label" htmlFor="room">Room</label>
+                  <label className="label" htmlFor="room">{t("cls.room")}</label>
                   <input id="room" name="room" className="input" placeholder="B203" />
                 </div>
                 <div>
-                  <label className="label" htmlFor="capacity">Capacity</label>
+                  <label className="label" htmlFor="capacity">{t("cls.capacity")}</label>
                   <input
                     id="capacity"
                     name="capacity"
@@ -74,7 +76,7 @@ export default async function ClassesPage() {
                   />
                 </div>
                 <div>
-                  <label className="label" htmlFor="academicYearId">Academic year</label>
+                  <label className="label" htmlFor="academicYearId">{t("acad.year")}</label>
                   <select
                     id="academicYearId"
                     name="academicYearId"
@@ -95,27 +97,29 @@ export default async function ClassesPage() {
       )}
 
       <Card
-        title={`${classes.length} ${classes.length === 1 ? "class" : "classes"}`}
+        title={
+          classes.length === 1
+            ? t("cls.nClass", { n: classes.length })
+            : t("cls.nClasses", { n: classes.length })
+        }
         subtitle={year?.name}
       >
         {classes.length === 0 ? (
           <EmptyState>
-            {year
-              ? "No classes yet for this academic year."
-              : "Create an academic year first, then add classes to it."}
+            {year ? t("cls.emptyYear") : t("cls.emptyNoYear")}
           </EmptyState>
         ) : (
           <div className="overflow-x-auto">
             <table className="table">
               <thead>
                 <tr>
-                  <th>Class</th>
-                  <th>Level</th>
-                  <th>Room</th>
-                  <th className="text-end">Students</th>
-                  <th>Supervisor</th>
-                  <th>Teachers</th>
-                  <th className="text-end">Actions</th>
+                  <th>{t("common.class")}</th>
+                  <th>{t("common.level")}</th>
+                  <th>{t("cls.room")}</th>
+                  <th className="text-end">{t("common.students")}</th>
+                  <th>{t("role.SUPERVISOR")}</th>
+                  <th>{t("cls.teachers")}</th>
+                  <th className="text-end">{t("common.actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -135,7 +139,7 @@ export default async function ClassesPage() {
                     <td className="text-ink-600">
                       {klass.supervisors.length === 0 ? (
                         <span className="badge bg-amber-50 text-amber-700">
-                          Unassigned
+                          {t("common.unassigned")}
                         </span>
                       ) : (
                         klass.supervisors
@@ -146,15 +150,15 @@ export default async function ClassesPage() {
                     <td className="text-ink-600">
                       {klass.teachers.length === 0 ? (
                         <span className="badge bg-amber-50 text-amber-700">
-                          Unassigned
+                          {t("common.unassigned")}
                         </span>
                       ) : (
-                        `${klass.teachers.length} assigned`
+                        t("cls.nAssigned", { n: klass.teachers.length })
                       )}
                     </td>
                     <td className="text-end">
                       <Link href={`/classes/${klass.id}`} className="btn-secondary btn-sm">
-                        Open
+                        {t("pa.open")}
                       </Link>
                     </td>
                   </tr>

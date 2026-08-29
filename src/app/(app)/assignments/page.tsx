@@ -1,12 +1,14 @@
 import { requireModule } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getCurrentYear } from "@/lib/queries";
+import { getI18n } from "@/lib/locale";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
 import { ActionForm } from "@/components/action-form";
 import { saveAssignments } from "./actions";
 
 export default async function AssignmentsPage() {
   const user = await requireModule("assignments");
+  const { t } = await getI18n();
   const canEdit = user.access.assignments.edit;
 
   const year = await getCurrentYear();
@@ -40,14 +42,16 @@ export default async function AssignmentsPage() {
   return (
     <>
       <PageHeader
-        title="Assignments"
-        description={`Assign classes of ${year?.name ?? "the current year"} to supervisors (who take attendance) and teachers (who log observations).`}
+        title={t("module.assignments.label")}
+        description={t("asg.subtitle", {
+          year: year?.name ?? t("asg.currentYearFallback"),
+        })}
       />
 
       {classes.length === 0 ? (
         <Card>
           <EmptyState>
-            Create an academic year and some classes before assigning staff.
+            {t("asg.empty")}
           </EmptyState>
         </Card>
       ) : (
@@ -55,36 +59,41 @@ export default async function AssignmentsPage() {
           {unsupervised.length > 0 && (
             <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
               <p className="text-sm font-medium text-amber-900">
-                {unsupervised.length}{" "}
-                {unsupervised.length === 1 ? "class has" : "classes have"} no
-                supervisor
+                {unsupervised.length === 1
+                  ? t("asg.oneClassNoSupervisor", { n: unsupervised.length })
+                  : t("asg.nClassesNoSupervisor", { n: unsupervised.length })}
               </p>
               <p className="mt-0.5 text-xs text-amber-800">
-                Attendance cannot be taken for {unsupervised.map((c) => c.name).join(", ")}.
+                {t("asg.cannotTake", {
+                  names: unsupervised.map((c) => c.name).join(", "),
+                })}
               </p>
             </div>
           )}
 
           <section className="mb-8">
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500">
-              Supervisors — daily attendance
+              {t("asg.supervisorsHeading")}
             </h2>
             <div className="grid gap-5 lg:grid-cols-2">
               {supervisors.length === 0 && (
                 <Card>
-                  <EmptyState>No supervisor accounts exist yet.</EmptyState>
+                  <EmptyState>{t("asg.noSupervisors")}</EmptyState>
                 </Card>
               )}
               {supervisors.map((supervisor) => (
                 <Card
                   key={supervisor.id}
                   title={`${supervisor.firstName} ${supervisor.lastName}`}
-                  subtitle={`${supervisor.supervisedClasses.length} of ${classes.length} classes`}
+                  subtitle={t("asg.nOfTotal", {
+                    n: supervisor.supervisedClasses.length,
+                    total: classes.length,
+                  })}
                 >
                   <div className="px-5 py-4">
                     <ActionForm
                       action={saveAssignments}
-                      submitLabel="Save assignment"
+                      submitLabel={t("asg.save")}
                       submitClassName="btn-secondary"
                     >
                       <input type="hidden" name="userId" value={supervisor.id} />
@@ -118,31 +127,34 @@ export default async function AssignmentsPage() {
 
           <section>
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500">
-              Teachers — daily observations
+              {t("asg.teachersHeading")}
             </h2>
             <div className="grid gap-5 lg:grid-cols-2">
               {teachers.length === 0 && (
                 <Card>
-                  <EmptyState>No teacher accounts exist yet.</EmptyState>
+                  <EmptyState>{t("asg.noTeachers")}</EmptyState>
                 </Card>
               )}
               {teachers.map((teacher) => (
                 <Card
                   key={teacher.id}
                   title={`${teacher.firstName} ${teacher.lastName}`}
-                  subtitle={`${teacher.taughtClasses.length} of ${classes.length} classes`}
+                  subtitle={t("asg.nOfTotal", {
+                    n: teacher.taughtClasses.length,
+                    total: classes.length,
+                  })}
                 >
                   <div className="px-5 py-4">
                     <ActionForm
                       action={saveAssignments}
-                      submitLabel="Save assignment"
+                      submitLabel={t("asg.save")}
                       submitClassName="btn-secondary"
                     >
                       <input type="hidden" name="userId" value={teacher.id} />
                       <input type="hidden" name="kind" value="TEACHER" />
                       <div className="mb-3">
                         <label className="label" htmlFor={`subject-${teacher.id}`}>
-                          Subject
+                          {t("asg.subject")}
                         </label>
                         <input
                           id={`subject-${teacher.id}`}

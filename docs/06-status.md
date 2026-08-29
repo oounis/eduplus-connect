@@ -39,14 +39,15 @@ can be done without hardware is done.
 | Student CSV import, two-pass with reasons | ✅ | `ui-test` (7 checks) |
 | Daily attendance register | ✅ | `ui-test` |
 | **Attendance by period** | ✅ | `period-test` (16 checks) |
-| **Quick attendance (PIN, no full sign-in)** | ✅ | `quick-test` (20 checks) |
+| **Quick attendance (PIN, no full sign-in)** | ✅ | `quick-test` (24 checks) |
+| **Day grid + final status + Excel export** | ✅ | `quick-test` |
 | **School day / periods admin** | ✅ | `period-test` |
 | Observations | ✅ | `ui-test` |
 | Staff tasks | ✅ | `smoke.sh` |
 | Reports + CSV + Excel | ✅ | `ui-test`, `period-test` |
 | Student profiles with visibility rules | ✅ | `ui-test` (4 checks) |
 | Audit trail | ✅ | `ui-test` (4 checks) |
-| Arabic default + English, RTL | ✅ | `test:i18n`, rendered `lang="ar" dir="rtl"` |
+| Arabic default + English, RTL | ✅ | `test:i18n` (495 keys), every module page verified rendering Arabic with no leftover English |
 
 ### Test results, 2026-08-29, against PostgreSQL 16
 
@@ -57,11 +58,11 @@ found that development had hidden.
 ```
                           dev      production build
 npm run test          →   4/4      4/4     (rate limiting)
-npm run test:i18n     →   10/10    10/10   (dictionaries in step)
+npm run test:i18n     →   11/11    11/11   (dictionaries in step, 495 keys)
 bash scripts/smoke.sh →   matrix correct   (7 roles × 16 pages)
 npm run test:ui       →   40/40    40/40
 npm run test:periods  →   16/16    16/16
-npm run test:quick    →   20/20    20/20
+npm run test:quick    →   24/24    24/24
 npx tsc --noEmit      →   clean
 npm run build         →   succeeds
 docker build          →   succeeds, 474 MB, runs as uid 1001
@@ -207,6 +208,23 @@ negative checks — the things that must NOT happen:
 That last one was a real defect when first written: the cookie is scoped to
 `/quick`, and deleting it by name alone targets path `/`, so "Finish" left the
 previous teacher signed in on a shared classroom device.
+
+### The interface is now fully Arabic
+
+Arabic was the default from 2026-08-29, but only the login page, the dashboard
+and the period screens had been translated — every other module still rendered
+English in its content area. All thirteen remaining modules are now translated:
+**495 keys**, both dictionaries in step.
+
+The i18n test gained the check that mattered: **every key the code calls must
+exist in the dictionary.** The old test only compared the two dictionaries with
+each other, so a page asking for a key neither of them had would render the raw
+key — `pa.lock.not-live` in front of a teacher — and nothing would fail. That
+check found 286 missing keys the moment the sweep landed.
+
+English strings were kept byte-identical throughout, because the browser suites
+match on them; 40/40, 16/16 and 24/24 still pass, which is how we know the
+sweep changed presentation and nothing else.
 
 ### Fixed by moving the message out of React's tree
 

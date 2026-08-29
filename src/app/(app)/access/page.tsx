@@ -1,11 +1,10 @@
 import { ConfirmSubmit } from "@/components/confirm-submit";
 import { requireModule } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getT } from "@/lib/locale";
 import {
   MODULES,
-  MODULE_META,
   ROLES,
-  ROLE_LABELS,
   type ModuleKey,
   type Role,
 } from "@/lib/constants";
@@ -15,6 +14,7 @@ import { resetAccessMatrix, saveAccessMatrix } from "./actions";
 
 export default async function AccessPage() {
   const user = await requireModule("access");
+  const t = await getT();
   const canEdit = user.access.access.edit;
 
   const rows = await prisma.roleModuleAccess.findMany();
@@ -27,13 +27,13 @@ export default async function AccessPage() {
   return (
     <>
       <PageHeader
-        title="Access rights"
-        description="Choose which modules each role can open, and which it can change. Edit implies view."
+        title={t("module.access.label")}
+        description={t("acc.subtitle")}
         actions={
           canEdit ? (
             <form action={resetAccessMatrix}>
-              <ConfirmSubmit message="Reset every role's access rights to the defaults? Your custom settings will be lost.">
-                Reset to defaults
+              <ConfirmSubmit message={t("acc.resetConfirm")}>
+                {t("acc.reset")}
               </ConfirmSubmit>
             </form>
           ) : null
@@ -42,7 +42,7 @@ export default async function AccessPage() {
 
       <ActionForm
         action={saveAccessMatrix}
-        submitLabel="Save access rights"
+        submitLabel={t("acc.save")}
         className={canEdit ? "" : "pointer-events-none opacity-70"}
       >
         <Card>
@@ -50,10 +50,10 @@ export default async function AccessPage() {
             <table className="table">
               <thead>
                 <tr>
-                  <th className="min-w-56">Module</th>
+                  <th className="min-w-56">{t("acc.module")}</th>
                   {ROLES.map((role) => (
                     <th key={role} className="text-center">
-                      {ROLE_LABELS[role]}
+                      {t(`role.${role}`)}
                     </th>
                   ))}
                 </tr>
@@ -63,10 +63,10 @@ export default async function AccessPage() {
                   <tr key={moduleKey}>
                     <td>
                       <p className="font-medium text-ink-900">
-                        {MODULE_META[moduleKey].label}
+                        {t(`module.${moduleKey}.label`)}
                       </p>
                       <p className="text-xs text-ink-500">
-                        {MODULE_META[moduleKey].description}
+                        {t(`module.${moduleKey}.description`)}
                       </p>
                     </td>
                     {ROLES.map((role) => {
@@ -82,7 +82,7 @@ export default async function AccessPage() {
                                 disabled={!canEdit}
                                 className="h-3.5 w-3.5 accent-brand-600"
                               />
-                              view
+                              {t("acc.view")}
                             </label>
                             <label className="flex items-center gap-1 text-[11px] text-ink-500">
                               <input
@@ -92,7 +92,7 @@ export default async function AccessPage() {
                                 disabled={!canEdit}
                                 className="h-3.5 w-3.5 accent-brand-600"
                               />
-                              edit
+                              {t("acc.edit")}
                             </label>
                           </div>
                         </td>
@@ -106,11 +106,7 @@ export default async function AccessPage() {
         </Card>
       </ActionForm>
 
-      <p className="mt-4 text-xs text-ink-500">
-        Changes apply the next time each user loads a page. Administrators keep
-        edit rights on Users and Access rights so the matrix can always be
-        undone.
-      </p>
+      <p className="mt-4 text-xs text-ink-500">{t("acc.note")}</p>
     </>
   );
 }

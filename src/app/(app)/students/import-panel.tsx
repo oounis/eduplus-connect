@@ -3,7 +3,36 @@
 import { useActionState } from "react";
 import { SubmitButton } from "@/components/action-form";
 import { showToast } from "@/components/toast";
+import { fill } from "@/lib/i18n";
 import { confirmImport, previewImport, type ImportState } from "./import-actions";
+
+/**
+ * Translated in the parent server component — a client component cannot be
+ * handed the translator itself. The `…Template` strings keep their `{n}`
+ * placeholder and are filled here, where the count is known.
+ */
+export type ImportLabels = {
+  paste: string;
+  columnsLead: string;
+  and: string;
+  areRequired: string;
+  areOptional: string;
+  checking: string;
+  check: string;
+  readyTemplate: string;
+  skippedTemplate: string;
+  importOneTemplate: string;
+  importManyTemplate: string;
+  importing: string;
+  line: string;
+  name: string;
+  code: string;
+  born: string;
+  klass: string;
+  parent: string;
+  status: string;
+  ready: string;
+};
 
 const SAMPLE = `firstName,lastName,code,dateOfBirth,class,parentEmail
 Yasmin,Haddad,,2015-04-23,Grade 5 - A,parent@eduplus.school
@@ -15,7 +44,7 @@ Omar,Belhaj,STU-9001,12/09/2014,Grade 5 - A,
  * writes it. The CSV is carried in a hidden field so the confirm step imports
  * exactly the text that was checked.
  */
-export default function ImportPanel() {
+export default function ImportPanel({ labels }: { labels: ImportLabels }) {
   const [state, action] = useActionState<ImportState, FormData>(
     async (prev, formData) => {
       const result =
@@ -41,7 +70,7 @@ export default function ImportPanel() {
       <form action={action} className="space-y-3">
         <div>
           <label className="label" htmlFor="csv">
-            Paste the CSV — header row required
+            {labels.paste}
           </label>
           <textarea
             id="csv"
@@ -53,16 +82,15 @@ export default function ImportPanel() {
             required
           />
           <p className="mt-1.5 text-xs text-ink-500">
-            Columns: <code>firstName</code> and <code>lastName</code> are
-            required; <code>code</code>, <code>dateOfBirth</code>,{" "}
-            <code>class</code> and <code>parentEmail</code> are optional. A blank
-            code is generated. The class name and parent email must already
-            exist — rows that do not match are skipped, never invented.
+            {labels.columnsLead} <code>firstName</code> {labels.and}{" "}
+            <code>lastName</code> {labels.areRequired} <code>code</code>,{" "}
+            <code>dateOfBirth</code>, <code>class</code> {labels.and}{" "}
+            <code>parentEmail</code> {labels.areOptional}
           </p>
         </div>
         <input type="hidden" name="intent" value="preview" />
-        <SubmitButton className="btn-secondary" pendingLabel="Checking…">
-          Check the file
+        <SubmitButton className="btn-secondary" pendingLabel={labels.checking}>
+          {labels.check}
         </SubmitButton>
       </form>
 
@@ -82,11 +110,11 @@ export default function ImportPanel() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink-200 px-4 py-3">
             <p className="text-sm">
               <span className="font-medium text-emerald-700">
-                {state.preview.ok} ready
+                {fill(labels.readyTemplate, { n: state.preview.ok })}
               </span>
               {state.preview.skipped > 0 && (
                 <span className="ms-3 font-medium text-red-600">
-                  {state.preview.skipped} will be skipped
+                  {fill(labels.skippedTemplate, { n: state.preview.skipped })}
                 </span>
               )}
             </p>
@@ -94,9 +122,13 @@ export default function ImportPanel() {
               <form action={action}>
                 <input type="hidden" name="csv" value={state.preview.csv} />
                 <input type="hidden" name="intent" value="confirm" />
-                <SubmitButton pendingLabel="Importing…">
-                  Import {state.preview.ok}{" "}
-                  {state.preview.ok === 1 ? "student" : "students"}
+                <SubmitButton pendingLabel={labels.importing}>
+                  {fill(
+                    state.preview.ok === 1
+                      ? labels.importOneTemplate
+                      : labels.importManyTemplate,
+                    { n: state.preview.ok },
+                  )}
                 </SubmitButton>
               </form>
             )}
@@ -106,13 +138,13 @@ export default function ImportPanel() {
             <table className="table">
               <thead>
                 <tr>
-                  <th className="w-14">Line</th>
-                  <th>Name</th>
-                  <th>Code</th>
-                  <th>Born</th>
-                  <th>Class</th>
-                  <th>Parent</th>
-                  <th>Status</th>
+                  <th className="w-14">{labels.line}</th>
+                  <th>{labels.name}</th>
+                  <th>{labels.code}</th>
+                  <th>{labels.born}</th>
+                  <th>{labels.klass}</th>
+                  <th>{labels.parent}</th>
+                  <th>{labels.status}</th>
                 </tr>
               </thead>
               <tbody>
@@ -130,7 +162,9 @@ export default function ImportPanel() {
                       {row.problem ? (
                         <span className="badge bg-red-50 text-red-700">{row.problem}</span>
                       ) : (
-                        <span className="badge bg-emerald-50 text-emerald-700">ready</span>
+                        <span className="badge bg-emerald-50 text-emerald-700">
+                          {labels.ready}
+                        </span>
                       )}
                     </td>
                   </tr>

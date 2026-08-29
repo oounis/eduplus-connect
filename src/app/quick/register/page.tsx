@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 import { getI18n } from "@/lib/locale";
 import { formatDate, toDayKey } from "@/lib/dates";
-import { getPeriodContext } from "@/lib/periods";
+import { getClassDayGrid, getPeriodContext } from "@/lib/periods";
 import { findNextPeriod } from "@/lib/school-time";
 import { ATTENDANCE_STATUSES, MODULES, type AttendanceStatus } from "@/lib/constants";
 import type { AccessMap } from "@/lib/auth";
@@ -11,6 +11,7 @@ import { QUICK_COOKIE, verifyQuickSession } from "@/lib/quick-session";
 import { KogiaTile } from "@/components/kogia";
 import { quickSignOut } from "../actions";
 import QuickRegister from "./register-form";
+import DayGrid from "./day-grid";
 
 /** Denied everywhere except the period register — see actions.ts. */
 function quickAccess(): AccessMap {
@@ -55,8 +56,15 @@ export default async function QuickRegisterPage({
     ATTENDANCE_STATUSES.map((s) => [s, t(`attendance.${s}`)]),
   ) as Record<AttendanceStatus, string>;
 
+  // The whole day for this class, shown under the register: a column per
+  // period and the final status. Also what the Excel export is built from,
+  // so the screen and the spreadsheet cannot disagree.
+  const day = selectedClassId
+    ? await getClassDayGrid(selectedClassId, context.dateKey)
+    : null;
+
   return (
-    <main className="mx-auto min-h-screen w-full max-w-3xl px-5 py-8">
+    <main className="mx-auto min-h-screen w-full max-w-5xl px-5 py-8">
       <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <KogiaTile size={28} />
@@ -143,6 +151,8 @@ export default async function QuickRegisterPage({
               {t(`pa.lock.${access.reason}`)}
             </div>
           )}
+          {/* Frozen once the period ends — the export is what is offered
+              instead, which is what the register is for after the fact. */}
           <QuickRegister
             classId={selectedClassId!}
             periodId={selectedPeriod?.id ?? ""}
@@ -157,6 +167,36 @@ export default async function QuickRegisterPage({
               statusLabels,
             }}
           />
+
+          {day && day.periods.length > 0 && (
+            <section className="mt-8">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-500">
+                  {t("quick.dayTitle")}
+                </h2>
+                <a
+                  href={`/quick/export?classId=${selectedClassId}&date=${context.dateISO}`}
+                  className="btn-secondary btn-sm"
+                >
+                  {t("quick.exportDay")}
+                </a>
+              </div>
+              <DayGrid
+                periods={day.periods}
+                rows={day.rows}
+                summary={day.summary}
+                livePeriodId={livePeriod?.id ?? null}
+                labels={{
+                  student: t("common.student"),
+                  finalStatus: t("quick.finalStatus"),
+                  notTaken: t("pa.notRecorded"),
+                  absentCount: t("quick.absentPerPeriod"),
+                  takenBy: t("pa.recordedBy"),
+                  statusLabels,
+                }}
+              />
+            </section>
+          )}
         </>
       )}
     </main>

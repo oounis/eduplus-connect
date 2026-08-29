@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getT } from "@/lib/locale";
+import { getI18n } from "@/lib/locale";
 import { requireModule, isSchoolWide } from "@/lib/auth";
 import { resolveReportScope } from "@/lib/reports";
 import {
@@ -18,12 +18,7 @@ import {
   PageHeader,
   StatTile,
 } from "@/components/ui";
-import {
-  OBSERVATION_CATEGORIES,
-  OBSERVATION_CATEGORY_LABELS,
-  SENTIMENTS,
-  SENTIMENT_LABELS,
-} from "@/lib/constants";
+import { OBSERVATION_CATEGORIES, SENTIMENTS } from "@/lib/constants";
 
 export default async function ReportsPage({
   searchParams,
@@ -31,7 +26,7 @@ export default async function ReportsPage({
   searchParams: Promise<{ from?: string; to?: string; classId?: string }>;
 }) {
   const user = await requireModule("reports");
-  const t = await getT();
+  const { locale, t } = await getI18n();
   const scope = await resolveReportScope(user, await searchParams);
 
   // Terms give the year its real shape — offer them as one-click periods.
@@ -90,20 +85,20 @@ export default async function ReportsPage({
   return (
     <>
       <PageHeader
-        title="Reports"
-        description={`${formatDate(scope.from)} – ${formatDate(scope.to)} · ${
+        title={t("module.reports.label")}
+        description={`${formatDate(scope.from, locale)} – ${formatDate(scope.to, locale)} · ${
           scope.selectedClassId
             ? scope.classes.find((c) => c.id === scope.selectedClassId)?.name
             : isSchoolWide(user.role)
-              ? "all classes"
-              : "your assigned classes"
+              ? t("dash.allClasses")
+              : t("rep.yourClasses")
         }`}
       />
 
       {/* Filters ------------------------------------------------------------ */}
       <form className="mb-6 flex flex-wrap items-end gap-3" action="/reports">
         <div>
-          <label className="label" htmlFor="from">From</label>
+          <label className="label" htmlFor="from">{t("pr.from")}</label>
           <input
             id="from"
             name="from"
@@ -113,7 +108,7 @@ export default async function ReportsPage({
           />
         </div>
         <div>
-          <label className="label" htmlFor="to">To</label>
+          <label className="label" htmlFor="to">{t("pr.to")}</label>
           <input
             id="to"
             name="to"
@@ -123,31 +118,31 @@ export default async function ReportsPage({
           />
         </div>
         <div>
-          <label className="label" htmlFor="classId">Class</label>
+          <label className="label" htmlFor="classId">{t("common.class")}</label>
           <select
             id="classId"
             name="classId"
             className="select w-56"
             defaultValue={scope.selectedClassId ?? ""}
           >
-            <option value="">All my classes</option>
+            <option value="">{t("rep.allMyClasses")}</option>
             {scope.classes.map((klass) => (
               <option key={klass.id} value={klass.id}>{klass.name}</option>
             ))}
           </select>
         </div>
-        <button type="submit" className="btn-secondary">Apply</button>
-        <Link href="/reports" className="btn-secondary">Reset</Link>
+        <button type="submit" className="btn-secondary">{t("common.apply")}</button>
+        <Link href="/reports" className="btn-secondary">{t("rep.reset")}</Link>
       </form>
 
       {/* One-click periods — the terms of the current year, plus the usual two */}
       <div className="mb-6 flex flex-wrap items-center gap-2">
         <span className="text-xs font-medium uppercase tracking-wide text-ink-500">
-          Quick period
+          {t("rep.quickPeriod")}
         </span>
         {[
-          { label: "Last 7 days", from: toISODate(addDays(today(), -6)), to: toISODate(today()) },
-          { label: "Last 30 days", from: toISODate(addDays(today(), -29)), to: toISODate(today()) },
+          { label: t("pr.last7"), from: toISODate(addDays(today(), -6)), to: toISODate(today()) },
+          { label: t("pr.last30"), from: toISODate(addDays(today(), -29)), to: toISODate(today()) },
           ...terms.map((term) => ({
             label: term.name,
             from: toISODate(term.startDate),
@@ -182,7 +177,7 @@ export default async function ReportsPage({
         })}
         {terms.length === 0 && (
           <span className="text-xs text-ink-400">
-            Add terms under Academic years to get one-click term reports.
+            {t("rep.addTermsHint")}
           </span>
         )}
       </div>
@@ -190,30 +185,30 @@ export default async function ReportsPage({
       {scope.classes.length === 0 ? (
         <Card>
           <EmptyState>
-            No classes are available to you, so there is nothing to report on.
+            {t("rep.noClasses")}
           </EmptyState>
         </Card>
       ) : (
         <>
           <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
             <StatTile
-              label="Attendance rate"
+              label={t("dash.attendanceRate")}
               value={rate === null ? "—" : `${rate.toFixed(1)}%`}
-              hint={`${totals.recorded} records`}
+              hint={t("common.nRecords", { n: totals.recorded })}
               tone={rate === null ? "neutral" : rate >= 90 ? "positive" : "warning"}
             />
-            <StatTile label="Absences" value={totals.absent} tone="danger" />
-            <StatTile label="Late" value={totals.late} tone="warning" />
+            <StatTile label={t("common.absences")} value={totals.absent} tone="danger" />
+            <StatTile label={t("attendance.LATE")} value={totals.late} tone="warning" />
             <StatTile
-              label="Observations"
+              label={t("module.observations.label")}
               value={totals.observations}
-              hint={`${totals.concerns} concerns`}
+              hint={t("rep.nConcerns", { n: totals.concerns })}
               tone="brand"
             />
             <StatTile
-              label="Perfect attendance"
+              label={t("rep.perfectAttendance")}
               value={perfect}
-              hint={`of ${studentRows.length} students`}
+              hint={t("rep.ofNStudents", { n: studentRows.length })}
               tone="positive"
             />
           </div>
@@ -221,8 +216,12 @@ export default async function ReportsPage({
           {/* By class ------------------------------------------------------- */}
           <Card
             className="mb-6"
-            title="By class"
-            subtitle={`${classRows.length} ${classRows.length === 1 ? "class" : "classes"}`}
+            title={t("dash.byClass")}
+            subtitle={
+              classRows.length === 1
+                ? t("rep.oneClass", { n: classRows.length })
+                : t("rep.nClasses", { n: classRows.length })
+            }
             actions={
               <a
                 href={`/reports/export?type=classes&${query}`}
@@ -236,16 +235,16 @@ export default async function ReportsPage({
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Class</th>
-                    <th className="text-end">Students</th>
-                    <th className="text-end">Days taken</th>
-                    <th className="w-40">Breakdown</th>
-                    <th className="text-end">Present</th>
-                    <th className="text-end">Absent</th>
-                    <th className="text-end">Late</th>
-                    <th className="text-end">Rate</th>
-                    <th className="text-end">Observations</th>
-                    <th className="text-end">Concerns</th>
+                    <th>{t("common.class")}</th>
+                    <th className="text-end">{t("common.students")}</th>
+                    <th className="text-end">{t("rep.daysTaken")}</th>
+                    <th className="w-40">{t("common.breakdown")}</th>
+                    <th className="text-end">{t("attendance.PRESENT")}</th>
+                    <th className="text-end">{t("attendance.ABSENT")}</th>
+                    <th className="text-end">{t("attendance.LATE")}</th>
+                    <th className="text-end">{t("common.rate")}</th>
+                    <th className="text-end">{t("module.observations.label")}</th>
+                    <th className="text-end">{t("common.concerns")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -299,8 +298,8 @@ export default async function ReportsPage({
           {/* Students needing attention ------------------------------------- */}
           <Card
             className="mb-6"
-            title="Students by absence"
-            subtitle="Most absences first"
+            title={t("rep.studentsByAbsence")}
+            subtitle={t("rep.mostAbsencesFirst")}
             actions={
               <a
                 href={`/reports/export?type=students&${query}`}
@@ -311,20 +310,20 @@ export default async function ReportsPage({
             }
           >
             {studentRows.length === 0 ? (
-              <EmptyState>No students in this scope.</EmptyState>
+              <EmptyState>{t("rep.noStudentsInScope")}</EmptyState>
             ) : (
               <div className="max-h-[32rem] overflow-auto">
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Student</th>
-                      <th>Class</th>
-                      <th className="text-end">Recorded</th>
-                      <th className="text-end">Absent</th>
-                      <th className="text-end">Late</th>
-                      <th className="text-end">Excused</th>
-                      <th className="text-end">Rate</th>
-                      <th className="text-end">Concerns</th>
+                      <th>{t("common.student")}</th>
+                      <th>{t("common.class")}</th>
+                      <th className="text-end">{t("rep.recorded")}</th>
+                      <th className="text-end">{t("attendance.ABSENT")}</th>
+                      <th className="text-end">{t("attendance.LATE")}</th>
+                      <th className="text-end">{t("attendance.EXCUSED")}</th>
+                      <th className="text-end">{t("common.rate")}</th>
+                      <th className="text-end">{t("common.concerns")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -362,8 +361,7 @@ export default async function ReportsPage({
                 </table>
                 {studentRows.length > 50 && (
                   <p className="px-5 py-3 text-xs text-ink-500">
-                    Showing the 50 students with the most absences of{" "}
-                    {studentRows.length}. The CSV export contains every student.
+                    {t("rep.showingTop50", { n: studentRows.length })}
                   </p>
                 )}
               </div>
@@ -373,8 +371,8 @@ export default async function ReportsPage({
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Observation matrix ------------------------------------------ */}
             <Card
-              title="Observations by category"
-              subtitle="Category against sentiment"
+              title={t("rep.observationsByCategory")}
+              subtitle={t("rep.categoryVsSentiment")}
               actions={
 
                 <div className="flex gap-2">
@@ -410,11 +408,11 @@ export default async function ReportsPage({
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Category</th>
+                      <th>{t("rep.category")}</th>
                       {SENTIMENTS.map((s) => (
-                        <th key={s} className="text-end">{SENTIMENT_LABELS[s]}</th>
+                        <th key={s} className="text-end">{t(`sentiment.${s}`)}</th>
                       ))}
-                      <th className="text-end">Total</th>
+                      <th className="text-end">{t("common.total")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -424,7 +422,7 @@ export default async function ReportsPage({
                       return (
                         <tr key={category}>
                           <td className="font-medium text-ink-800">
-                            {OBSERVATION_CATEGORY_LABELS[category]}
+                            {t(`observation.${category}`)}
                           </td>
                           {cells.map((n, i) => (
                             <td key={SENTIMENTS[i]} className="text-end tabular-nums">
@@ -445,16 +443,19 @@ export default async function ReportsPage({
             </Card>
 
             {/* Daily trend -------------------------------------------------- */}
-            <Card title="Daily attendance" subtitle={`${trend.length} school days recorded`}>
+            <Card
+              title={t("rep.dailyAttendance")}
+              subtitle={t("rep.nSchoolDays", { n: trend.length })}
+            >
               {trend.length === 0 ? (
-                <EmptyState>No attendance was recorded in this period.</EmptyState>
+                <EmptyState>{t("rep.noAttendance")}</EmptyState>
               ) : (
                 <div className="max-h-[24rem] overflow-y-auto px-5 py-3">
                   <ul className="space-y-2">
                     {trend.map((day) => (
                       <li key={day.date.toISOString()} className="flex items-center gap-3">
                         <span className="w-16 shrink-0 text-xs text-ink-500">
-                          {formatShortDate(day.date)}
+                          {formatShortDate(day.date, locale)}
                         </span>
                         <div className="min-w-0 flex-1">
                           <AttendanceBar

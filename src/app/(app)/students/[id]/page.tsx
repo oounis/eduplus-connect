@@ -12,9 +12,8 @@ import {
   SentimentBadge,
   StatTile,
 } from "@/components/ui";
-import { OBSERVATION_CATEGORY_LABELS } from "@/lib/constants";
 import { canEditStudentContact } from "@/lib/student-contact";
-import { getT } from "@/lib/locale";
+import { getI18n } from "@/lib/locale";
 import { StudentContactForm } from "./contact-form";
 
 const RANGES = [30, 90, 365] as const;
@@ -40,7 +39,7 @@ export default async function StudentProfilePage({
   const history = await getStudentHistory(student.id, from);
 
   // Supervisors may edit contact details, but only for their own classes.
-  const t = await getT();
+  const { locale, t } = await getI18n();
   const contactPermission = await canEditStudentContact(user, student.id);
   const showContact = user.access.students?.view ?? false;
 
@@ -58,15 +57,15 @@ export default async function StudentProfilePage({
         description={[
           student.code,
           student.class?.name ?? t("common.unassigned"),
-          age !== null ? `${age} years old` : null,
-          student.isActive ? null : "Inactive",
+          age !== null ? `${age} ${t("common.yearsOld")}` : null,
+          student.isActive ? null : t("common.inactive"),
         ]
           .filter(Boolean)
           .join(" · ")}
         actions={
           user.access.students?.view ? (
             <Link href="/students" className="btn-secondary btn-sm">
-              All students
+              {t("stu.allStudents")}
             </Link>
           ) : null
         }
@@ -75,7 +74,7 @@ export default async function StudentProfilePage({
       {/* Range picker ------------------------------------------------------ */}
       <div className="mb-6 flex flex-wrap items-center gap-2">
         <span className="text-xs font-medium uppercase tracking-wide text-ink-500">
-          Period
+          {t("pa.period")}
         </span>
         {RANGES.map((r) => (
           <Link
@@ -87,19 +86,19 @@ export default async function StudentProfilePage({
                 : "bg-ink-100 text-ink-600 hover:text-ink-900"
             }`}
           >
-            Last {r} days
+            {t("stu.lastNDays", { n: r })}
           </Link>
         ))}
         <span className="text-xs text-ink-400">
-          {formatShortDate(from)} – {formatShortDate(today())}
+          {formatShortDate(from, locale)} – {formatShortDate(today(), locale)}
         </span>
       </div>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatTile
-          label="Attendance rate"
+          label={t("dash.attendanceRate")}
           value={history.rate === null ? "—" : `${history.rate.toFixed(1)}%`}
-          hint={`${history.recorded} days recorded`}
+          hint={t("stu.nDaysRecorded", { n: history.recorded })}
           tone={
             history.rate === null
               ? "neutral"
@@ -108,23 +107,29 @@ export default async function StudentProfilePage({
                 : "warning"
           }
         />
-        <StatTile label="Absences" value={history.absent} tone="danger" />
-        <StatTile label="Late" value={history.late} tone="warning" />
+        <StatTile label={t("common.absences")} value={history.absent} tone="danger" />
+        <StatTile label={t("attendance.LATE")} value={history.late} tone="warning" />
         <StatTile
-          label="Observations"
+          label={t("module.observations.label")}
           value={history.observations.length}
-          hint={`${history.positives} positive · ${history.concerns} concern`}
+          hint={t("stu.obsHint", {
+            positive: history.positives,
+            concern: history.concerns,
+          })}
           tone="brand"
         />
         <StatTile
-          label="Excused"
+          label={t("attendance.EXCUSED")}
           value={history.excused}
-          hint={`${history.present} present`}
+          hint={t("stu.nPresent", { n: history.present })}
         />
       </div>
 
       <div className="mb-6">
-        <Card title="Attendance mix" subtitle={`Last ${window} days`}>
+        <Card
+          title={t("stu.attendanceMix")}
+          subtitle={t("stu.lastNDays", { n: window })}
+        >
           <div className="px-5 py-4">
             <AttendanceBar
               present={history.present}
@@ -133,8 +138,12 @@ export default async function StudentProfilePage({
               excused={history.excused}
             />
             <p className="mt-2 text-xs text-ink-500">
-              {history.present} present · {history.late} late ·{" "}
-              {history.excused} excused · {history.absent} absent
+              {t("stu.mixLine", {
+                present: history.present,
+                late: history.late,
+                excused: history.excused,
+                absent: history.absent,
+              })}
             </p>
           </div>
         </Card>
@@ -142,29 +151,27 @@ export default async function StudentProfilePage({
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card
-          title="Attendance history"
-          subtitle={`${history.attendance.length} records`}
+          title={t("stu.attendanceHistory")}
+          subtitle={t("common.nRecords", { n: history.attendance.length })}
         >
           {history.attendance.length === 0 ? (
-            <EmptyState>
-              No attendance was recorded for this student in this period.
-            </EmptyState>
+            <EmptyState>{t("stu.noAttendance")}</EmptyState>
           ) : (
             <div className="max-h-[28rem] overflow-y-auto">
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Date</th>
-                    <th>Status</th>
-                    <th>Note</th>
-                    <th className="text-end">Recorded by</th>
+                    <th>{t("common.date")}</th>
+                    <th>{t("common.status")}</th>
+                    <th>{t("common.note")}</th>
+                    <th className="text-end">{t("pa.recordedBy")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {history.attendance.map((row) => (
                     <tr key={row.id}>
                       <td className="whitespace-nowrap text-ink-600">
-                        {formatDate(row.date)}
+                        {formatDate(row.date, locale)}
                       </td>
                       <td>
                         <AttendanceBadge status={row.status} />
@@ -182,25 +189,19 @@ export default async function StudentProfilePage({
         </Card>
 
         <Card
-          title="Observations"
-          subtitle={`${history.observations.length} entries`}
+          title={t("module.observations.label")}
+          subtitle={t("stu.nEntries", { n: history.observations.length })}
         >
           {history.observations.length === 0 ? (
-            <EmptyState>
-              No observations were written for this student in this period.
-            </EmptyState>
+            <EmptyState>{t("stu.noObservations")}</EmptyState>
           ) : (
             <ul className="max-h-[28rem] divide-y divide-ink-100 overflow-y-auto">
               {history.observations.map((row) => (
                 <li key={row.id} className="px-5 py-3">
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-xs text-ink-500">
-                      {formatDate(row.date)} ·{" "}
-                      {
-                        OBSERVATION_CATEGORY_LABELS[
-                          row.category as keyof typeof OBSERVATION_CATEGORY_LABELS
-                        ]
-                      }
+                      {formatDate(row.date, locale)} ·{" "}
+                      {t(`observation.${row.category}`)}
                     </span>
                     <SentimentBadge sentiment={row.sentiment} />
                   </div>

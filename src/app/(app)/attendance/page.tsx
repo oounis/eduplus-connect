@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireModule } from "@/lib/auth";
+import { getI18n } from "@/lib/locale";
 import { prisma } from "@/lib/db";
 import { formatDate, toDayKey, today, toISODate } from "@/lib/dates";
 import {
@@ -9,7 +10,7 @@ import {
 } from "@/lib/queries";
 import { AttendanceBar, Card, EmptyState, PageHeader, StatTile } from "@/components/ui";
 import Register, { type RegisterStudent } from "./register";
-import type { AttendanceStatus } from "@/lib/constants";
+import { ATTENDANCE_STATUSES, type AttendanceStatus } from "@/lib/constants";
 
 export default async function AttendancePage({
   searchParams,
@@ -17,6 +18,7 @@ export default async function AttendancePage({
   searchParams: Promise<{ classId?: string; date?: string }>;
 }) {
   const user = await requireModule("attendance");
+  const { locale, t } = await getI18n();
   const params = await searchParams;
 
   const year = await getCurrentYear();
@@ -93,33 +95,37 @@ export default async function AttendancePage({
   const recorded =
     dayTotals.present + dayTotals.absent + dayTotals.late + dayTotals.excused;
 
+  const statusLabels = Object.fromEntries(
+    ATTENDANCE_STATUSES.map((s) => [s, t(`attendance.${s}`)]),
+  ) as Record<AttendanceStatus, string>;
+
   return (
     <>
       <PageHeader
-        title="Attendance"
-        description={`${formatDate(date)} · ${
-          visible === "ALL" ? "all classes" : "your assigned classes"
+        title={t("module.attendance.label")}
+        description={`${formatDate(date, locale)} · ${
+          visible === "ALL" ? t("dash.allClasses") : t("common.yourClasses")
         }`}
       />
 
       {/* Class + date picker */}
       <form className="mb-6 flex flex-wrap items-end gap-3" action="/attendance">
         <div>
-          <label className="label" htmlFor="classId">Class</label>
+          <label className="label" htmlFor="classId">{t("common.class")}</label>
           <select
             id="classId"
             name="classId"
             className="select w-56"
             defaultValue={selectedClassId ?? ""}
           >
-            {classes.length === 0 && <option value="">No classes available</option>}
+            {classes.length === 0 && <option value="">{t("common.noClassesAvailable")}</option>}
             {classes.map((klass) => (
               <option key={klass.id} value={klass.id}>{klass.name}</option>
             ))}
           </select>
         </div>
         <div>
-          <label className="label" htmlFor="date">Date</label>
+          <label className="label" htmlFor="date">{t("common.date")}</label>
           <input
             id="date"
             name="date"
@@ -129,45 +135,44 @@ export default async function AttendancePage({
             max={toISODate(today())}
           />
         </div>
-        <button type="submit" className="btn-secondary">Open register</button>
+        <button type="submit" className="btn-secondary">{t("att.openRegister")}</button>
       </form>
 
       {classes.length === 0 ? (
         <Card>
-          <EmptyState>
-            No classes are available to you. An administrator assigns classes
-            under Assignments.
-          </EmptyState>
+          <EmptyState>{t("common.noClassesForYou")}</EmptyState>
         </Card>
       ) : (
         <>
           <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatTile
-              label="Recorded today"
+              label={t("att.recordedToday")}
               value={recorded}
-              hint={`across ${summary.length} ${summary.length === 1 ? "class" : "classes"}`}
+              hint={t(
+                summary.length === 1 ? "att.acrossOneClass" : "att.acrossClasses",
+                { n: summary.length },
+              )}
             />
-            <StatTile label="Present" value={dayTotals.present} tone="positive" />
-            <StatTile label="Absent" value={dayTotals.absent} tone="danger" />
-            <StatTile label="Late" value={dayTotals.late} tone="warning" />
+            <StatTile label={t("attendance.PRESENT")} value={dayTotals.present} tone="positive" />
+            <StatTile label={t("attendance.ABSENT")} value={dayTotals.absent} tone="danger" />
+            <StatTile label={t("attendance.LATE")} value={dayTotals.late} tone="warning" />
           </div>
 
           {isFuture && (
             <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-900">
-              You cannot take a register for a future date.
+              {t("att.futureDate")}
             </div>
           )}
           {!isOwnClass && !isFuture && (
             <div className="mb-5 rounded-xl border border-ink-200 bg-white px-5 py-3 text-sm text-ink-600">
-              You are viewing this register read-only — you are not the
-              supervisor of this class.
+              {t("att.readOnly")}
             </div>
           )}
 
           <div className="mb-6">
             {students.length === 0 ? (
               <Card>
-                <EmptyState>This class has no active students.</EmptyState>
+                <EmptyState>{t("pa.noStudents")}</EmptyState>
               </Card>
             ) : (
               <Register
@@ -175,22 +180,37 @@ export default async function AttendancePage({
                 date={dateParam}
                 students={students}
                 readOnly={!canWrite}
+                labels={{
+                  save: t("att.saveRegister"),
+                  quickFill: t("pa.quickFill"),
+                  allPresent: t("pa.allPresent"),
+                  clear: t("action.clear"),
+                  // Raw template: the client fills it as the count changes.
+                  markedTemplate: t("pa.marked"),
+                  code: t("common.code"),
+                  student: t("common.student"),
+                  status: t("common.status"),
+                  note: t("common.note"),
+                  noteForTemplate: t("att.noteFor"),
+                  optional: t("att.optional"),
+                  statusLabels,
+                }}
               />
             )}
           </div>
 
-          <Card title="All classes on this date" subtitle={formatDate(date)}>
+          <Card title={t("att.allClassesOnDate")} subtitle={formatDate(date, locale)}>
             <div className="overflow-x-auto">
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Class</th>
-                    <th className="w-48">Breakdown</th>
-                    <th className="text-end">Present</th>
-                    <th className="text-end">Absent</th>
-                    <th className="text-end">Late</th>
-                    <th className="text-end">Excused</th>
-                    <th className="text-end">Status</th>
+                    <th>{t("common.class")}</th>
+                    <th className="w-48">{t("common.breakdown")}</th>
+                    <th className="text-end">{t("attendance.PRESENT")}</th>
+                    <th className="text-end">{t("attendance.ABSENT")}</th>
+                    <th className="text-end">{t("attendance.LATE")}</th>
+                    <th className="text-end">{t("attendance.EXCUSED")}</th>
+                    <th className="text-end">{t("common.status")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -218,9 +238,9 @@ export default async function AttendancePage({
                       <td className="text-end tabular-nums">{row.excused}</td>
                       <td className="text-end">
                         {row.taken ? (
-                          <span className="badge bg-emerald-50 text-emerald-700">Taken</span>
+                          <span className="badge bg-emerald-50 text-emerald-700">{t("dash.taken")}</span>
                         ) : (
-                          <span className="badge bg-amber-50 text-amber-700">Not taken</span>
+                          <span className="badge bg-amber-50 text-amber-700">{t("att.notTaken")}</span>
                         )}
                       </td>
                     </tr>

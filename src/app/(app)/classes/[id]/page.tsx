@@ -5,6 +5,7 @@ import { requireModule } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatShortDate, today, toISODate } from "@/lib/dates";
 import { getAttendanceSummaryForDay, getObservationSummaryForWeek } from "@/lib/queries";
+import { getI18n } from "@/lib/locale";
 import {
   AttendanceBar,
   Card,
@@ -22,6 +23,7 @@ export default async function ClassDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const user = await requireModule("classes");
+  const { locale, t } = await getI18n();
   const { id } = await params;
   const canEdit = user.access.classes.edit;
 
@@ -55,59 +57,66 @@ export default async function ClassDetailPage({
     <>
       <PageHeader
         title={klass.name}
-        description={`${klass.level} · ${klass.academicYear.name} · room ${klass.room ?? "—"}`}
+        description={t("cls.detailMeta", {
+          level: klass.level,
+          year: klass.academicYear.name,
+          room: klass.room ?? "—",
+        })}
         actions={
           <>
             <Link
               href={`/attendance?classId=${klass.id}&date=${toISODate(day)}`}
               className="btn-secondary btn-sm"
             >
-              Attendance
+              {t("module.attendance.label")}
             </Link>
             <Link href={`/observations?classId=${klass.id}`} className="btn-secondary btn-sm">
-              Observations
+              {t("module.observations.label")}
             </Link>
             <Link href="/classes" className="btn-secondary btn-sm">
-              Back
+              {t("action.back")}
             </Link>
           </>
         }
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile label="Students" value={klass.students.length} hint={`Capacity ${klass.capacity}`} />
+        <StatTile label={t("common.students")} value={klass.students.length} hint={t("cls.capacityN", { n: klass.capacity })} />
         <StatTile
-          label="Attendance today"
+          label={t("cls.attendanceToday")}
           value={attendanceToday?.rate === null || !attendanceToday ? "—" : `${attendanceToday.rate.toFixed(0)}%`}
-          hint={attendanceToday?.taken ? `${attendanceToday.recorded} recorded` : "Register not taken"}
+          hint={attendanceToday?.taken ? t("cls.nRecorded", { n: attendanceToday.recorded }) : t("cls.registerNotTaken")}
           tone={attendanceToday?.taken ? "positive" : "warning"}
         />
         <StatTile
-          label="Observations this week"
+          label={t("cls.observationsWeek")}
           value={observationsWeek?.total ?? 0}
-          hint={`${observationsWeek?.concern ?? 0} concerns`}
+          hint={t("cls.nConcerns", { n: observationsWeek?.concern ?? 0 })}
           tone="brand"
         />
         <StatTile
-          label="Staff assigned"
+          label={t("cls.staffAssigned")}
           value={klass.supervisors.length + klass.teachers.length}
-          hint={`${klass.supervisors.length} supervisor · ${klass.teachers.length} teacher`}
+          hint={t("cls.staffHint", {
+            supervisors: klass.supervisors.length,
+            teachers: klass.teachers.length,
+          })}
         />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          <Card title="Students" subtitle={`${klass.students.length} enrolled`}>
+          <Card title={t("common.students")} subtitle={t("cls.nEnrolled", { n: klass.students.length })}>
             {klass.students.length === 0 ? (
-              <EmptyState>No students in this class yet.</EmptyState>
+              <EmptyState>{t("cls.noStudents")}</EmptyState>
             ) : (
               <div className="overflow-x-auto">
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Code</th>
-                      <th>Name</th>
-                      <th className="text-end">Status</th>
+                      <th>{t("common.code")}</th>
+                      <th>{t("periods.name")}</th>
+                      <th className="text-end">{t("common.status")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -119,9 +128,9 @@ export default async function ClassDetailPage({
                         </td>
                         <td className="text-end">
                           {student.isActive ? (
-                            <span className="badge bg-emerald-50 text-emerald-700">Active</span>
+                            <span className="badge bg-emerald-50 text-emerald-700">{t("common.active")}</span>
                           ) : (
-                            <span className="badge bg-ink-100 text-ink-500">Inactive</span>
+                            <span className="badge bg-ink-100 text-ink-500">{t("common.inactive")}</span>
                           )}
                         </td>
                       </tr>
@@ -132,9 +141,9 @@ export default async function ClassDetailPage({
             )}
           </Card>
 
-          <Card title="Latest observations">
+          <Card title={t("cls.latestObservations")}>
             {recentObservations.length === 0 ? (
-              <EmptyState>No observations recorded for this class.</EmptyState>
+              <EmptyState>{t("cls.noObservations")}</EmptyState>
             ) : (
               <ul className="divide-y divide-ink-100">
                 {recentObservations.map((row) => (
@@ -147,7 +156,7 @@ export default async function ClassDetailPage({
                     </div>
                     <p className="mt-1 text-sm text-ink-700">{row.note}</p>
                     <p className="mt-0.5 text-xs text-ink-400">
-                      {formatShortDate(row.date)} · {row.author.firstName} {row.author.lastName}
+                      {formatShortDate(row.date, locale)} · {row.author.firstName} {row.author.lastName}
                     </p>
                   </li>
                 ))}
@@ -158,7 +167,7 @@ export default async function ClassDetailPage({
 
         <div className="space-y-6">
           {attendanceToday && (
-            <Card title="Today's register">
+            <Card title={t("cls.todayRegister")}>
               <div className="px-5 py-4">
                 <AttendanceBar
                   present={attendanceToday.present}
@@ -168,19 +177,19 @@ export default async function ClassDetailPage({
                 />
                 <dl className="mt-4 space-y-1.5 text-sm">
                   <div className="flex justify-between">
-                    <dt className="text-ink-500">Present</dt>
+                    <dt className="text-ink-500">{t("attendance.PRESENT")}</dt>
                     <dd className="tabular-nums">{attendanceToday.present}</dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-ink-500">Late</dt>
+                    <dt className="text-ink-500">{t("attendance.LATE")}</dt>
                     <dd className="tabular-nums">{attendanceToday.late}</dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-ink-500">Excused</dt>
+                    <dt className="text-ink-500">{t("attendance.EXCUSED")}</dt>
                     <dd className="tabular-nums">{attendanceToday.excused}</dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-ink-500">Absent</dt>
+                    <dt className="text-ink-500">{t("attendance.ABSENT")}</dt>
                     <dd className="tabular-nums font-medium text-red-600">
                       {attendanceToday.absent}
                     </dd>
@@ -190,12 +199,12 @@ export default async function ClassDetailPage({
             </Card>
           )}
 
-          <Card title="Assigned staff">
+          <Card title={t("cls.assignedStaff")}>
             <div className="space-y-3 px-5 py-4 text-sm">
               <div>
-                <p className="label">Supervisors</p>
+                <p className="label">{t("cls.supervisors")}</p>
                 {klass.supervisors.length === 0 ? (
-                  <p className="text-ink-500">None assigned.</p>
+                  <p className="text-ink-500">{t("cls.noneAssigned")}</p>
                 ) : (
                   <ul className="space-y-0.5">
                     {klass.supervisors.map((s) => (
@@ -207,9 +216,9 @@ export default async function ClassDetailPage({
                 )}
               </div>
               <div>
-                <p className="label">Teachers</p>
+                <p className="label">{t("cls.teachers")}</p>
                 {klass.teachers.length === 0 ? (
-                  <p className="text-ink-500">None assigned.</p>
+                  <p className="text-ink-500">{t("cls.noneAssigned")}</p>
                 ) : (
                   <ul className="space-y-0.5">
                     {klass.teachers.map((t) => (
@@ -227,25 +236,25 @@ export default async function ClassDetailPage({
           </Card>
 
           {canEdit && (
-            <Card title="Edit class">
+            <Card title={t("cls.editClass")}>
               <div className="px-5 py-4">
-                <ActionForm action={updateClass} submitLabel="Save changes">
+                <ActionForm action={updateClass} submitLabel={t("action.saveChanges")}>
                   <input type="hidden" name="id" value={klass.id} />
                   <div className="space-y-3">
                     <div>
-                      <label className="label" htmlFor="name">Name</label>
+                      <label className="label" htmlFor="name">{t("periods.name")}</label>
                       <input id="name" name="name" className="input" defaultValue={klass.name} required />
                     </div>
                     <div>
-                      <label className="label" htmlFor="level">Level</label>
+                      <label className="label" htmlFor="level">{t("common.level")}</label>
                       <input id="level" name="level" className="input" defaultValue={klass.level} required />
                     </div>
                     <div>
-                      <label className="label" htmlFor="room">Room</label>
+                      <label className="label" htmlFor="room">{t("cls.room")}</label>
                       <input id="room" name="room" className="input" defaultValue={klass.room ?? ""} />
                     </div>
                     <div>
-                      <label className="label" htmlFor="capacity">Capacity</label>
+                      <label className="label" htmlFor="capacity">{t("cls.capacity")}</label>
                       <input
                         id="capacity"
                         name="capacity"
@@ -258,7 +267,7 @@ export default async function ClassDetailPage({
                       />
                     </div>
                     <div>
-                      <label className="label" htmlFor="academicYearId">Academic year</label>
+                      <label className="label" htmlFor="academicYearId">{t("acad.year")}</label>
                       <select
                         id="academicYearId"
                         name="academicYearId"
@@ -278,9 +287,9 @@ export default async function ClassDetailPage({
                     <input type="hidden" name="id" value={klass.id} />
                     <ConfirmSubmit
                       className="btn-danger btn-sm"
-                      message={`Delete the class ${klass.name}? This cannot be undone.`}
+                      message={t("cls.deleteConfirm", { name: klass.name })}
                     >
-                      Delete this class
+                      {t("cls.deleteClass")}
                     </ConfirmSubmit>
                   </form>
                 )}

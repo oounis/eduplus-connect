@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getI18n, getT } from "@/lib/locale";
+import { getI18n } from "@/lib/locale";
 import { requireModule, isSchoolWide } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatDate, formatShortDate, today, toISODate } from "@/lib/dates";
@@ -20,7 +20,6 @@ import {
   SentimentBadge,
   StatTile,
 } from "@/components/ui";
-import { OBSERVATION_CATEGORY_LABELS } from "@/lib/constants";
 
 export default async function DashboardPage() {
   const { locale, t } = await getI18n();
@@ -66,7 +65,9 @@ export default async function DashboardPage() {
 
   const scope = isSchoolWide(user.role)
     ? t("dash.allClasses")
-    : `your ${attendance.length} assigned ${attendance.length === 1 ? "class" : "classes"}`;
+    : attendance.length === 1
+      ? t("dash.scopeOne", { n: attendance.length })
+      : t("dash.scopeMany", { n: attendance.length });
 
   // The period register is time-sensitive, so the way in sits at the top of the
   // dashboard with the live period on it rather than only in the sidebar.
@@ -153,7 +154,7 @@ export default async function DashboardPage() {
             value={`${totals.taken}/${attendance.length}`}
             hint={
               totals.taken < attendance.length
-                ? `${attendance.length - totals.taken} still pending`
+                ? t("dash.stillPending", { n: attendance.length - totals.taken })
                 : t("dash.allComplete")
             }
             tone={totals.taken < attendance.length ? "warning" : "positive"}
@@ -162,7 +163,7 @@ export default async function DashboardPage() {
 
         <Card className="mt-4" title={t("dash.byClass")} subtitle={formatDate(day, locale)}>
           {attendance.length === 0 ? (
-            <EmptyState>No classes are assigned to you yet.</EmptyState>
+            <EmptyState>{t("dash.noClasses")}</EmptyState>
           ) : (
             <div className="overflow-x-auto">
               <table className="table">
@@ -220,7 +221,7 @@ export default async function DashboardPage() {
                           <span className="badge bg-emerald-50 text-emerald-700">{t("dash.taken")}</span>
                         ) : (
                           <span className="badge bg-amber-50 text-amber-700">
-                            Not taken
+                            {t("dash.notTaken")}
                           </span>
                         )}
                       </td>
@@ -261,10 +262,12 @@ export default async function DashboardPage() {
         <Card
           className="mt-4"
           title={t("dash.byClass")}
-          subtitle={`Week of ${formatDate(observations.from, locale)}`}
+          subtitle={t("dash.weekOf", {
+            date: formatDate(observations.from, locale),
+          })}
         >
           {observations.rows.length === 0 ? (
-            <EmptyState>No classes are assigned to you yet.</EmptyState>
+            <EmptyState>{t("dash.noClasses")}</EmptyState>
           ) : (
             <div className="overflow-x-auto">
               <table className="table">
@@ -358,15 +361,13 @@ async function FamilyDashboard({
   return (
     <>
       <PageHeader
-        title={role === "PARENT" ? "My children" : "My record"}
+        title={role === "PARENT" ? t("dash.myChildren") : t("dash.myRecord")}
         description={`${formatDate(day, locale)} · ${t("dash.familyWindow")}`}
       />
 
       {students.length === 0 ? (
         <Card>
-          <EmptyState>
-            No student record is linked to this account yet.
-          </EmptyState>
+          <EmptyState>{t("dash.noStudentRecord")}</EmptyState>
         </Card>
       ) : (
         <>
@@ -391,11 +392,11 @@ async function FamilyDashboard({
                   </p>
                   <div className="mt-3 flex gap-6 text-sm">
                     <div>
-                      <p className="text-xs text-ink-500">Absences (30d)</p>
+                      <p className="text-xs text-ink-500">{t("dash.absences30")}</p>
                       <p className="font-semibold tabular-nums">{absences}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-ink-500">Concerns (30d)</p>
+                      <p className="text-xs text-ink-500">{t("dash.concerns30")}</p>
                       <p className="font-semibold tabular-nums">{concerns}</p>
                     </div>
                   </div>
@@ -446,11 +447,7 @@ async function FamilyDashboard({
                       <div className="flex items-center justify-between gap-3">
                         <span className="text-xs text-ink-500">
                           {formatShortDate(row.date, locale)} ·{" "}
-                          {
-                            OBSERVATION_CATEGORY_LABELS[
-                              row.category as keyof typeof OBSERVATION_CATEGORY_LABELS
-                            ]
-                          }
+                          {t(`observation.${row.category}`)}
                         </span>
                         <SentimentBadge sentiment={row.sentiment} />
                       </div>

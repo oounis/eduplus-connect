@@ -154,6 +154,53 @@ async function main() {
     const absent = saved.filter((r) => r.status === "ABSENT").length;
     check("mixed statuses persisted", absent === 1, `${absent} absent`);
 
+    // -- 5b. The day grid and its export ------------------------------------
+    console.log("\nThe whole day, and the export");
+    const finalColumn = await anon.locator("text=Final attendance status").count();
+    check("the final-status column is shown", finalColumn > 0);
+
+    const gridRows = await anon.locator("table tbody tr").count();
+    check(
+      "the grid has a row per student",
+      gridRows === saved.length,
+      `${gridRows} rows for ${saved.length} students`,
+    );
+
+    // Exported from inside the browser: the session cookie is Secure in a
+    // production build and an API request context would not send it.
+    const workbook = await anon.evaluate(async (url) => {
+      const response = await fetch(url, { credentials: "same-origin" });
+      const buffer = await response.arrayBuffer();
+      return {
+        status: response.status,
+        contentType: response.headers.get("content-type") ?? "",
+        head: String.fromCharCode(...new Uint8Array(buffer.slice(0, 2))),
+        bytes: buffer.byteLength,
+      };
+    }, `${BASE}/quick/export?classId=${link.classId}`);
+    check(
+      "the day exports as a real .xlsx workbook",
+      workbook.status === 200 &&
+        workbook.contentType.includes("spreadsheet") &&
+        workbook.head === "PK",
+      `${workbook.status} ${workbook.bytes} bytes`,
+    );
+
+    // The export must not become a way to read any class in the school.
+    const foreignExport = await anon.evaluate(async (url) => {
+      const response = await fetch(url, { credentials: "same-origin" });
+      const buffer = await response.arrayBuffer();
+      return {
+        status: response.status,
+        head: String.fromCharCode(...new Uint8Array(buffer.slice(0, 2))),
+      };
+    }, `${BASE}/quick/export?classId=${foreign.id}`);
+    check(
+      "the export refuses another teacher's class",
+      foreignExport.status === 403 && foreignExport.head !== "PK",
+      String(foreignExport.status),
+    );
+
     // -- 6. A quick token reaches NOTHING else ------------------------------
     console.log("\nWhat the quick token cannot do");
     for (const path of ["/dashboard", "/students", "/users", "/period-reports"]) {
