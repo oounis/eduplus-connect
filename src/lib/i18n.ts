@@ -282,6 +282,25 @@ const en: Dict = {
   "pr.todayOnly": "Today",
   "pr.rangeCaption": "{from} to {to} · {records} record(s)",
 
+  // -- quick attendance (shared classroom device, no full sign-in)
+  "quick.title": "Take the register",
+  "quick.subtitle": "Choose your name and enter your PIN. You will go straight to the class for the period running now.",
+  "quick.choose": "Choose your name",
+  "quick.enterPin": "Enter your PIN to open the register.",
+  "quick.notYou": "Not you? Choose another name",
+  "quick.pin": "Your PIN",
+  "quick.pinHint": "{n} digits, given to you by the administrator.",
+  "quick.open": "Open the register",
+  "quick.chooseAndPin": "Choose your name and enter your PIN",
+  "quick.wrongPin": "That name and PIN do not match",
+  "quick.tooMany": "Too many attempts. Try again in {minutes} minute(s).",
+  "quick.expired": "This device has been signed out. Enter your PIN again.",
+  "quick.noTeachers": "No teacher has been given a PIN yet. An administrator sets one on each teacher's account.",
+  "quick.leave": "Finish",
+  "quick.fromLogin": "Take the register without signing in",
+  "quick.fromLoginHint": "For teachers on a shared classroom device.",
+  "quick.fullAccess": "Need the full system?",
+
   // -- login
   "login.title": "Sign in",
   "login.subtitle": "School management platform",
@@ -574,6 +593,25 @@ const ar: Dict = {
   "pr.last30": "آخر 30 يوماً",
   "pr.todayOnly": "اليوم",
   "pr.rangeCaption": "من {from} إلى {to} · {records} سجلاً",
+
+  // -- الحضور السريع (جهاز مشترك في القسم، دون دخول كامل)
+  "quick.title": "تسجيل الحضور",
+  "quick.subtitle": "اختر اسمك وأدخل رمزك السري. ستنتقل مباشرة إلى قسم الحصة الجارية الآن.",
+  "quick.choose": "اختر اسمك",
+  "quick.enterPin": "أدخل رمزك السري لفتح السجل.",
+  "quick.notYou": "لست أنت؟ اختر اسماً آخر",
+  "quick.pin": "رمزك السري",
+  "quick.pinHint": "{n} أرقام، يمنحها لك المدير.",
+  "quick.open": "فتح السجل",
+  "quick.chooseAndPin": "اختر اسمك وأدخل رمزك السري",
+  "quick.wrongPin": "الاسم والرمز غير متطابقين",
+  "quick.tooMany": "محاولات كثيرة. أعد المحاولة بعد {minutes} دقيقة.",
+  "quick.expired": "تم إنهاء الجلسة على هذا الجهاز. أدخل رمزك من جديد.",
+  "quick.noTeachers": "لم يُمنح أي معلم رمزاً بعد. المدير يضبطه من حساب كل معلم.",
+  "quick.leave": "إنهاء",
+  "quick.fromLogin": "تسجيل الحضور دون تسجيل الدخول",
+  "quick.fromLoginHint": "للمعلمين على جهاز مشترك في القسم.",
+  "quick.fullAccess": "تحتاج النظام كاملاً؟",
 
   // -- login
   "login.title": "تسجيل الدخول",

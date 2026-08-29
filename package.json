@@ -20,7 +20,8 @@
     "test:contact": "tsx scripts/contact-access-test.ts",
     "test:i18n": "tsx scripts/i18n-test.ts",
     "test:ui": "tsx scripts/ui-test.ts",
-    "test:periods": "tsx scripts/period-test.ts"
+    "test:periods": "tsx scripts/period-test.ts",
+    "test:quick": "tsx scripts/quick-test.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.2.1",

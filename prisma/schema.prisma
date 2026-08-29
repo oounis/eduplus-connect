@@ -34,6 +34,12 @@ model User {
   phone3       String?
   role         String // ADMIN | DEPUTY | STAFF | SUPERVISOR | TEACHER | PARENT | STUDENT
   isActive     Boolean  @default(true)
+
+  /// bcrypt hash of the teacher's short quick-attendance PIN, or null when
+  /// they have none. Lets a teacher reach ONLY the period register from a
+  /// shared classroom device without typing an email and password — see
+  /// src/lib/quick-session.ts. Null means quick access is off for them.
+  quickPin     String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

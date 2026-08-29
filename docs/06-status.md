@@ -39,6 +39,7 @@ can be done without hardware is done.
 | Student CSV import, two-pass with reasons | ✅ | `ui-test` (7 checks) |
 | Daily attendance register | ✅ | `ui-test` |
 | **Attendance by period** | ✅ | `period-test` (16 checks) |
+| **Quick attendance (PIN, no full sign-in)** | ✅ | `quick-test` (20 checks) |
 | **School day / periods admin** | ✅ | `period-test` |
 | Observations | ✅ | `ui-test` |
 | Staff tasks | ✅ | `smoke.sh` |
@@ -60,6 +61,7 @@ npm run test:i18n     →   10/10    10/10   (dictionaries in step)
 bash scripts/smoke.sh →   matrix correct   (7 roles × 16 pages)
 npm run test:ui       →   40/40    40/40
 npm run test:periods  →   16/16    16/16
+npm run test:quick    →   20/20    20/20
 npx tsc --noEmit      →   clean
 npm run build         →   succeeds
 docker build          →   succeeds, 474 MB, runs as uid 1001
@@ -172,6 +174,7 @@ Recorded because how they were found matters more than that they were fixed.
 | 7 | The denied page had an untranslated English paragraph and an unused `denied.body` key. | Reading the page while fixing #1 | Low |
 | 8 | **Every confirmation message was invisible in production.** A Server Action that revalidates hands React a new RSC payload with its result; React replaces the form's subtree before the returned state is ever committed. Add an observation → the row is written, the teacher is told *nothing* → they add it again. Worked in development, so it had never been seen. | Running the suites against the **production build** for the first time | **High** — silent duplicate data entry |
 | 9 | A dev-only CSP mistake blocked all client JavaScript (Next's dev server needs `unsafe-eval`), which presented as every form silently failing. | Introduced and caught within the same session | Medium |
+| 10 | **"Finish" did not sign a shared device out.** The quick-attendance cookie is scoped to `/quick`; deleting it by name alone targets path `/`, so it survived — leaving the next teacher to pick up the tablet signed in as the previous one. | `quick-test` | **High** for a shared device |
 
 ### What made #8 findable
 
@@ -183,6 +186,27 @@ were passing for the wrong reason.
 
 **Do not accept "green in dev" as evidence again.** `npm run build && npx next
 start` then point the suites at it.
+
+### Quick attendance: what its tests actually assert
+
+It is the one page reachable without signing in, so the suite is mostly
+negative checks — the things that must NOT happen:
+
+```
+  PASS  no student name is on the page before the PIN
+  PASS  only teachers with a PIN are listed
+  PASS  the register bounces back without a PIN
+  PASS  a wrong PIN is refused
+  PASS  every row is attributed to the teacher who signed in
+  PASS  another teacher's class is not offered
+  PASS  nothing was written to another teacher's class
+  PASS  a quick session cannot open /dashboard, /students, /users, /period-reports
+  PASS  finishing signs the device out
+```
+
+That last one was a real defect when first written: the cookie is scoped to
+`/quick`, and deleting it by name alone targets path `/`, so "Finish" left the
+previous teacher signed in on a shared classroom device.
 
 ### Fixed by moving the message out of React's tree
 

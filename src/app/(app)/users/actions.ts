@@ -6,6 +6,11 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { assertModule } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
+import {
+  QUICK_PIN_LENGTH,
+  isValidPinFormat,
+  isWeakPin,
+} from "@/lib/quick-session";
 import { ROLES } from "@/lib/constants";
 
 export type ActionState = { error?: string; success?: string };
@@ -152,6 +157,61 @@ export async function resetPassword(
     summary: `Reset the password of ${target?.firstName ?? "a user"} ${target?.lastName ?? ""}`.trim(),
   });
   return { success: "Password reset" };
+}
+
+/**
+ * Sets or clears a teacher's quick-attendance PIN.
+ *
+ * Quick access is opt-in per teacher: no PIN means they do not appear on the
+ * /quick page at all. The PIN is hashed like a password — it is a credential,
+ * short or not — and an administrator who forgets one sets a new one rather
+ * than reading it back.
+ */
+export async function setQuickPin(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const actor = await assertModule("users");
+  const id = String(formData.get("id") ?? "");
+  const pin = String(formData.get("pin") ?? "").trim();
+
+  const target = await prisma.user.findUnique({ where: { id } });
+  if (!target) return { error: "That account no longer exists" };
+  if (target.role !== "TEACHER") {
+    return { error: "Quick attendance is for teachers only" };
+  }
+
+  // Empty clears it, which is how quick access is switched off for a person.
+  if (pin === "") {
+    await prisma.user.update({ where: { id }, data: { quickPin: null } });
+    await recordAudit(actor, {
+      action: "UPDATE",
+      entity: "user",
+      entityId: id,
+      summary: `Turned off quick attendance for ${target.firstName} ${target.lastName}`,
+    });
+    return { success: "Quick attendance turned off" };
+  }
+
+  if (!isValidPinFormat(pin)) {
+    return { error: `The PIN must be exactly ${QUICK_PIN_LENGTH} digits` };
+  }
+  if (isWeakPin(pin)) {
+    return { error: "That PIN is too easy to guess — avoid 123456 or 000000" };
+  }
+
+  await prisma.user.update({
+    where: { id },
+    data: { quickPin: await bcrypt.hash(pin, 10) },
+  });
+  await recordAudit(actor, {
+    action: "UPDATE",
+    entity: "user",
+    entityId: id,
+    // The PIN itself is never written to the history.
+    summary: `Set a quick-attendance PIN for ${target.firstName} ${target.lastName}`,
+  });
+  return { success: "Quick attendance PIN set" };
 }
 
 export async function deleteUser(formData: FormData) {

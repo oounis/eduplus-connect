@@ -117,6 +117,39 @@ The write rule lives in exactly one function, and the server action re-derives
 it rather than trusting the form. A page left open past the bell cannot post
 into a closed register.
 
+### 5b. Quick attendance — the classroom device *(added 2026-08-29)*
+
+A teacher standing in front of a class does not want to type an email address
+and a password on a shared tablet. So the login page carries a second way in:
+**Take the register without signing in**.
+
+1. Pick your name from a list.
+2. Type a short PIN.
+3. You land on the register for the period running right now.
+
+**Why there is a PIN.** The request was for a page reachable without logging in
+at all. Left fully open, that page publishes the name of every child in the
+school to anyone who finds the URL, and lets any visitor file attendance under a
+named teacher's identity — which also makes the audit trail worthless. A
+six-digit PIN keeps what the request was actually for (no credentials on a
+shared device, during a 45-minute period) without either consequence.
+
+What it deliberately is and is not:
+
+| | |
+|---|---|
+| **Public before the PIN** | Only the list of teacher names — the minimum the "choose your name" step needs. No class, no student, no roster. |
+| **Behind the PIN** | That teacher's own classes, and the register for the live period. |
+| **Reaches** | Nothing else. The token lives under its own cookie with its own audience; no other page in the app reads it. A quick session cannot open the dashboard, students, users or reports. |
+| **Attribution** | Every row records the teacher who signed in, and the history marks it as taken via quick access. |
+| **Opt-in per teacher** | No PIN means they do not appear on the page at all. An administrator sets one on each teacher's account. |
+| **Rate limited** | Per teacher *and* per address, so neither guessing one PIN nor spraying one PIN across every teacher is practical. |
+| **Finish** | Clears the device — important, because the next person to pick it up is a different teacher. |
+
+The PIN is stored hashed, like a password, and is never written to the audit
+trail. An administrator who forgets one sets a new one rather than reading it
+back.
+
 ### 6. Observations
 
 Dated, free-text notes written by **teachers** about students in their classes.

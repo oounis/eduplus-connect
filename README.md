@@ -89,6 +89,14 @@ and observations so the dashboards are not empty.
   default — because the server runs in UTC and would otherwise unlock the wrong
   period. Period times are stored as "HH:MM" wall-clock strings, not instants,
   so the timetable does not move when the clocks change.
+- **Quick attendance** (`/quick`, linked from the login page) is the classroom
+  way in: a teacher on a shared device picks their name, types a short PIN, and
+  lands on the register for the period running now — no email and password.
+  Before the PIN the page shows **only teacher names**; no class and no student.
+  The token is a separate cookie with its own audience and reaches nothing else
+  in the app. It is opt-in per teacher (an administrator sets the PIN on their
+  account), rate limited per teacher and per address, and "Finish" clears the
+  device. Every row still records who took it.
 - **Period reports** (`/period-reports`) aggregate any range three ways — by
   period, by period and class, and by day and period — over one class or several
   at once, and export as a real four-sheet Excel workbook.
@@ -130,6 +138,7 @@ npm run test                     # unit tests
 npm run test:i18n                # the two dictionaries agree
 npm run test:ui                  # drives the real UI in Chromium end to end
 npm run test:periods             # attendance by period, end to end
+npm run test:quick               # quick attendance, incl. what it refuses
 npx tsx scripts/dev-token.ts <email>   # mint a session cookie for curl
 npm run db:sync-access           # grant a newly added module on an existing DB
 ```
@@ -145,7 +154,7 @@ streaming and answers **200** with the refusal in the body. Checking the status
 alone scored every blocked page as "ok" and would have hidden a real access
 regression.
 
-`scripts/ui-test.ts` (39 checks) logs in as a supervisor and saves a register,
+`scripts/ui-test.ts` (40 checks) logs in as a supervisor and saves a register,
 checks a supervisor cannot reach an unassigned class, checks staff see every
 register read-only, adds an observation as a teacher, confirms the admin
 dashboard reflects both, proves the student profile is closed to the wrong

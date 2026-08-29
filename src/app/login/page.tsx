@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getI18n } from "@/lib/locale";
@@ -77,6 +78,21 @@ export default async function LoginPage() {
             submitLabel={t("login.submit")}
             submittingLabel={t("login.submitting")}
           />
+
+          {/* The classroom way in: a teacher on a shared device picks their
+              name and types a PIN, and lands on the register for the period
+              running now — no email and password between them and the class. */}
+          <div className="mt-6 border-t border-ink-200 pt-6">
+            <Link
+              href="/quick"
+              className="btn-secondary flex w-full items-center justify-center gap-2 py-2.5"
+            >
+              {t("quick.fromLogin")}
+            </Link>
+            <p className="mt-2 text-center text-xs text-ink-500">
+              {t("quick.fromLoginHint")}
+            </p>
+          </div>
 
           <details className="mt-8 rounded-xl border border-ink-200 bg-white p-4">
             <summary className="cursor-pointer text-xs font-semibold text-ink-700">

@@ -7,7 +7,8 @@ import { MODULES, MODULE_META, ROLES, ROLE_LABELS, type Role } from "@/lib/const
 import { resolveAccess } from "@/lib/auth";
 import { Card, PageHeader, RoleBadge } from "@/components/ui";
 import { ActionForm } from "@/components/action-form";
-import { deleteUser, resetPassword, updateUser } from "../actions";
+import { deleteUser, resetPassword, setQuickPin, updateUser } from "../actions";
+import { QUICK_PIN_LENGTH } from "@/lib/quick-session";
 
 export default async function EditUserPage({
   params,
@@ -130,6 +131,45 @@ export default async function EditUserPage({
               </ActionForm>
             </div>
           </Card>
+
+          {/* Quick attendance is opt-in per teacher: no PIN, and they do not
+              appear on the /quick page at all. */}
+          {user.role === "TEACHER" && (
+            <Card className="mt-6" title="Quick attendance PIN">
+              <div className="px-5 py-4">
+                <p className="mb-3 text-xs text-ink-500">
+                  Lets {user.firstName} take the period register from a shared
+                  classroom device without signing in — they pick their name on
+                  the <code>/quick</code> page and type this PIN. It opens the
+                  register for the period running now, and nothing else.
+                  {user.quickPin
+                    ? " A PIN is set. Setting a new one replaces it."
+                    : " No PIN is set, so they do not appear on that page."}
+                  {" Leave the field empty and save to turn quick access off."}
+                </p>
+                <ActionForm
+                  action={setQuickPin}
+                  submitLabel={user.quickPin ? "Replace PIN" : "Set PIN"}
+                  submitClassName="btn-secondary"
+                >
+                  <input type="hidden" name="id" value={user.id} />
+                  <label className="label" htmlFor="pin">
+                    {QUICK_PIN_LENGTH}-digit PIN
+                  </label>
+                  <input
+                    id="pin"
+                    name="pin"
+                    type="text"
+                    inputMode="numeric"
+                    pattern={`\\d{${QUICK_PIN_LENGTH}}`}
+                    maxLength={QUICK_PIN_LENGTH}
+                    className="input max-w-xs tracking-[0.3em]"
+                    placeholder="482913"
+                  />
+                </ActionForm>
+              </div>
+            </Card>
+          )}
         </div>
 
         <div className="space-y-6">
