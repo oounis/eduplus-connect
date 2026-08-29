@@ -59,7 +59,6 @@ export async function createUser(
     summary: `Created ${rest.role.toLowerCase()} account ${rest.firstName} ${rest.lastName} (${rest.email})`,
   });
 
-  revalidatePath("/users");
   return { success: `${rest.firstName} ${rest.lastName} was added` };
 }
 
@@ -104,7 +103,6 @@ export async function updateUser(
         : `Edited the account of ${rest.firstName} ${rest.lastName}`,
   });
 
-  revalidatePath("/users");
   return { success: "Changes saved" };
 }
 
@@ -153,7 +151,6 @@ export async function resetPassword(
     entityId: id,
     summary: `Reset the password of ${target?.firstName ?? "a user"} ${target?.lastName ?? ""}`.trim(),
   });
-  revalidatePath("/users");
   return { success: "Password reset" };
 }
 

@@ -1,0 +1,31 @@
+# Never copy secrets or local state into the build context.
+.env
+.env.*
+!.env.example
+
+node_modules
+.next
+out
+build
+
+.git
+.gitignore
+
+# Local databases and dumps
+*.db
+*.db-journal
+*.sql
+backups/
+
+# Editor / OS noise
+.DS_Store
+.vscode
+.idea
+*.log
+npm-debug.log*
+
+# Nothing here is needed to run the app
+docs/
+_shots/
+*.md
+!README.md

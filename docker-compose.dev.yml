@@ -1,0 +1,37 @@
+# Local development database.
+#
+# The app itself runs on the host (`npm run dev`) — only Postgres is
+# containerised, so development uses the same engine and the same version as
+# production. That symmetry is the point: it is what stops a query behaving
+# one way on a laptop and another on the server.
+#
+#   docker compose -f docker-compose.dev.yml up -d
+#   npm run setup      # migrate + seed
+#   npm run dev
+#
+# Port 55432, not 5432, so it cannot collide with a Postgres already installed
+# on the machine.
+
+name: eduplus-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:55432:5432"   # localhost only
+    environment:
+      POSTGRES_USER: eduplus
+      POSTGRES_PASSWORD: devpass
+      POSTGRES_DB: eduplus
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
+    volumes:
+      - devdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eduplus -d eduplus"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  devdata:

@@ -30,9 +30,14 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Everything except the login page, Next internals, the favicon and
-     * static assets.
+     * Everything except the login page, the health check, Next internals, the
+     * favicon and static assets.
+     *
+     * api/health is exempt deliberately: it is polled by nginx, the container
+     * healthcheck and uptime monitoring, none of which hold a session. Gating
+     * it would report a perfectly healthy server as down. It returns no
+     * information beyond "up" or "down".
      */
-    "/((?!login|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!login|api/health|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

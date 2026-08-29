@@ -82,7 +82,6 @@ export async function createObservation(
     },
   });
 
-  revalidatePath("/observations");
   revalidatePath("/dashboard");
   return { success: "Observation added" };
 }

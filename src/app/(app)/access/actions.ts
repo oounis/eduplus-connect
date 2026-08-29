@@ -91,7 +91,6 @@ export async function saveAccessMatrix(
           (changed.length > 6 ? ` and ${changed.length - 6} more` : ""),
   });
 
-  revalidatePath("/access");
   revalidatePath("/dashboard");
   return { success: "Access rights saved" };
 }

@@ -67,7 +67,6 @@ export async function saveAssignments(
         : names.map((c) => c.name).join(", ")),
   });
 
-  revalidatePath("/assignments");
   revalidatePath("/classes");
   revalidatePath("/dashboard");
   return {

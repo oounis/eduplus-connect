@@ -1,0 +1,105 @@
+# EduPlus Connect — SERVER 1 (application tier)
+#
+#   nginx (TLS, rate limiting, load balancing) -> N app replicas
+#
+# The app talks to the database over WireGuard, at pgBouncer on server 2.
+# Only 80 and 443 are open to the internet; the app containers are never
+# published directly.
+#
+#   cd /opt/eduplus/app && docker compose up -d --build
+
+name: eduplus-app
+
+x-app: &app
+  build:
+    context: ../../
+    dockerfile: Dockerfile
+  image: eduplus-connect:latest
+  restart: unless-stopped
+  environment:
+    NODE_ENV: production
+    PORT: "3100"
+    # Through pgBouncer (6432), not Postgres directly.
+    #
+    # pgbouncer=true tells Prisma to stop using named prepared statements,
+    # which transaction pooling cannot support — without it you get
+    # "prepared statement s0 already exists" under load, intermittently.
+    #
+    # connection_limit is PER REPLICA. Keep (replicas x limit) below
+    # pgBouncer's DEFAULT_POOL_SIZE headroom.
+    DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+    AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET}
+    SCHOOL_TIMEZONE: ${SCHOOL_TIMEZONE:-Asia/Bahrain}
+  expose:
+    - "3100"
+  healthcheck:
+    test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3100/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+    interval: 30s
+    timeout: 5s
+    retries: 3
+    start_period: 30s
+  logging: &logging
+    driver: json-file
+    options: { max-size: "10m", max-file: "5" }
+
+services:
+  # Replicas rather than one big process: Node is single-threaded per process,
+  # so one container uses one core no matter how many the VPS has. Four
+  # replicas behind nginx is how 12 vCPU actually gets used. Scale this number
+  # to roughly (vCPU / 2), leaving room for nginx and the OS.
+  app1: { <<: *app, container_name: eduplus-app1 }
+  app2: { <<: *app, container_name: eduplus-app2 }
+  app3: { <<: *app, container_name: eduplus-app3 }
+  app4: { <<: *app, container_name: eduplus-app4 }
+
+  # One-shot: applies pending migrations, then exits. Runs before the replicas
+  # serve traffic. Uses DIRECT_URL — migrations need a real session, which
+  # transaction pooling does not give them.
+  migrate:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    image: eduplus-connect:latest
+    restart: "no"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DIRECT_URL:?set DIRECT_URL}
+    command: ["npx", "prisma", "migrate", "deploy"]
+    logging: *logging
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on: [app1, app2, app3, app4]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/eduplus.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - certbot-webroot:/var/www/certbot:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *logging
+
+  # Renews the Let's Encrypt certificate twice a day; exits immediately when
+  # there is nothing to renew.
+  certbot:
+    image: certbot/certbot:latest
+    restart: unless-stopped
+    volumes:
+      - ./nginx/certs:/etc/letsencrypt
+      - certbot-webroot:/var/www/certbot
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "while true; do
+         certbot renew --webroot -w /var/www/certbot --quiet;
+         sleep 43200;
+       done"
+    logging: *logging
+
+volumes:
+  certbot-webroot:

@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { SubmitButton } from "@/components/action-form";
+import { showToast } from "@/components/toast";
 import { confirmImport, previewImport, type ImportState } from "./import-actions";
 
 const SAMPLE = `firstName,lastName,code,dateOfBirth,class,parentEmail
@@ -16,10 +17,22 @@ Omar,Belhaj,STU-9001,12/09/2014,Grade 5 - A,
  */
 export default function ImportPanel() {
   const [state, action] = useActionState<ImportState, FormData>(
-    async (prev, formData) =>
-      formData.get("intent") === "confirm"
-        ? confirmImport(prev, formData)
-        : previewImport(prev, formData),
+    async (prev, formData) => {
+      const result =
+        formData.get("intent") === "confirm"
+          ? await confirmImport(prev, formData)
+          : await previewImport(prev, formData);
+
+      // Confirming an import revalidates the student list, which replaces this
+      // subtree and discards the state before it renders — so the person who
+      // just imported 90 students would be told nothing at all. The toast is
+      // raised outside React's tree, here, where no re-render can remove it.
+      // The preview step is not announced: its result is the panel itself.
+      if (result.success && !result.preview) showToast(result.success, "success");
+      else if (result.error) showToast(result.error, "error");
+
+      return result;
+    },
     {},
   );
 

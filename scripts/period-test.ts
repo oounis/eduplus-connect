@@ -85,6 +85,7 @@ async function main() {
     const adminContext = await browser.newContext();
     const admin = await signIn(adminContext, "admin@eduplus.school");
     await admin.goto(`${BASE}/periods`);
+    await admin.waitForLoadState("networkidle");
     await admin.waitForSelector("text=Test live period", { timeout: 20000 });
     check("the admin sees the period list", true);
 
@@ -123,6 +124,7 @@ async function main() {
     await teacher.goto(
       `${BASE}/period-attendance?classId=${ownLink.classId}&periodId=${livePeriod.id}`,
     );
+    await teacher.waitForLoadState("networkidle");
     try {
       await teacher.waitForSelector("text=Quick fill:", { timeout: 20000 });
       check("the register is open for the live period", true);
@@ -175,6 +177,7 @@ async function main() {
     await teacher.goto(
       `${BASE}/period-attendance?classId=${ownLink.classId}&periodId=${closedPeriod.id}`,
     );
+    await teacher.waitForLoadState("networkidle");
     await teacher.waitForSelector("text=/not running now/i", { timeout: 20000 });
     const teacherSave = await teacher
       .locator('button:has-text("Save attendance")')
@@ -188,6 +191,7 @@ async function main() {
     await teacher.goto(
       `${BASE}/period-attendance?classId=${ownLink.classId}&periodId=${livePeriod.id}&date=${yesterdayISO}`,
     );
+    await teacher.waitForLoadState("networkidle");
     await teacher.waitForSelector("text=/only be written on the day itself/i", {
       timeout: 20000,
     });
@@ -198,6 +202,7 @@ async function main() {
     await admin.goto(
       `${BASE}/period-attendance?teacherId=${teacherUser.id}&classId=${ownLink.classId}&periodId=${closedPeriod.id}`,
     );
+    await admin.waitForLoadState("networkidle");
     await admin.waitForSelector("text=Quick fill:", { timeout: 20000 });
     await admin.click('button:has-text("All present")');
     await admin.click('button:has-text("Save attendance")');
@@ -223,6 +228,7 @@ async function main() {
     await admin.goto(
       `${BASE}/period-reports?from=${clock.dateISO}&to=${clock.dateISO}`,
     );
+    await admin.waitForLoadState("networkidle");
     await admin.waitForSelector("text=By period", { timeout: 20000 });
     const periodNamed = await admin
       .locator(`text=${livePeriod.name}`)
@@ -243,17 +249,35 @@ async function main() {
     // Scope must be enforced on the export, not just the page.
     const parentContext = await browser.newContext();
     const parent = await signIn(parentContext, "parent@eduplus.school");
-    const refused = await parent.request.get(
-      `${BASE}/period-reports/export?from=${clock.dateISO}&to=${clock.dateISO}`,
-    );
+    // From inside the browser: a production build marks the session cookie
+    // Secure, and Playwright's API request context will not send it over
+    // plain http://, so the request would land on the login page and this
+    // check would pass without ever reaching the export.
+    const refused = await parent.evaluate(async (url) => {
+      const response = await fetch(url, { credentials: "same-origin" });
+      return {
+        status: response.status,
+        contentType: response.headers.get("content-type") ?? "",
+        head: (await response.text()).slice(0, 2),
+      };
+    }, `${BASE}/period-reports/export?from=${clock.dateISO}&to=${clock.dateISO}`);
+    // Assert the harm, not the mechanism: what matters is that no workbook
+    // comes back. A production build refuses this by bouncing the request to
+    // /login (200, HTML) rather than answering 403, so checking the status
+    // alone reported a correctly-blocked export as a failure.
+    // Both halves matter: the right status, and definitely no workbook
+    // (a real .xlsx is a zip, so it starts "PK").
     check(
       "a parent is refused the period export",
-      refused.status() === 403,
-      String(refused.status()),
+      refused.status === 403 &&
+        !refused.contentType.includes("spreadsheet") &&
+        refused.head !== "PK",
+      `${refused.status} ${refused.contentType}`,
     );
 
     // -- 7. A teacher's report is limited to their own classes -------------
     await teacher.goto(`${BASE}/period-reports`);
+    await teacher.waitForLoadState("networkidle");
     await teacher.waitForSelector("text=By period", { timeout: 20000 });
     const visibleClasses = await prisma.classTeacher.count({
       where: { userId: teacherUser.id },

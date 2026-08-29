@@ -53,7 +53,6 @@ export async function createClass(
     summary: `Created class ${rest.name} (${rest.level})`,
   });
 
-  revalidatePath("/classes");
   return { success: `${parsed.data.name} was created` };
 }
 
@@ -88,7 +87,6 @@ export async function updateClass(
     summary: `Edited class ${parsed.data.name}`,
   });
 
-  revalidatePath("/classes");
   revalidatePath(`/classes/${id}`);
   return { success: "Changes saved" };
 }

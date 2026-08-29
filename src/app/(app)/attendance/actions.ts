@@ -90,7 +90,6 @@ export async function saveAttendance(
     summary: `Saved the register for ${klass?.name ?? "a class"} on ${dateValue} — ${writes.length} students`,
   });
 
-  revalidatePath("/attendance");
   revalidatePath("/dashboard");
   return {
     success: `Register saved — ${writes.length} ${writes.length === 1 ? "student" : "students"} recorded`,

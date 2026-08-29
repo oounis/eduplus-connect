@@ -92,7 +92,6 @@ export async function createStudent(
     summary: `Enrolled ${parsed.data.firstName} ${parsed.data.lastName} (${code})`,
   });
 
-  revalidatePath("/students");
   revalidatePath("/classes");
   return { success: `${parsed.data.firstName} ${parsed.data.lastName} was added` };
 }
@@ -145,7 +144,6 @@ export async function updateStudent(
     summary: `Edited the record of ${parsed.data.firstName} ${parsed.data.lastName}`,
   });
 
-  revalidatePath("/students");
   revalidatePath("/classes");
   return { success: "Changes saved" };
 }
@@ -250,7 +248,6 @@ export async function updateStudentContact(
     summary: `Updated ${changed.join(", ")} for ${before.firstName} ${before.lastName}`,
   });
 
-  revalidatePath("/students");
   revalidatePath(`/students/${id}`);
   return { success: "Contact details saved" };
 }

@@ -77,7 +77,6 @@ export async function createPeriod(
     summary: `Added period ${period.name} (${period.startTime}–${period.endTime})`,
   });
 
-  revalidatePath("/periods");
   revalidatePath("/period-attendance");
   return { success: t("periods.created", { name: period.name }) };
 }
@@ -113,7 +112,6 @@ export async function updatePeriod(
       ` to ${period.name} (${period.startTime}–${period.endTime})`,
   });
 
-  revalidatePath("/periods");
   revalidatePath("/period-attendance");
   return { success: t("periods.updated", { name: period.name }) };
 }

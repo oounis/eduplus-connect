@@ -1,0 +1,113 @@
+# EduPlus Connect — SERVER 2 (data tier)
+#
+#   Postgres 16 + pgBouncer + scheduled backups.
+#
+# Nothing here is published to the internet. Both services bind to the
+# WireGuard address only (WG_ADDR, e.g. 10.10.10.2), so the database is
+# reachable from the app server and from nowhere else — a Postgres listening
+# on 0.0.0.0 is found by scanners within hours.
+#
+#   cd /opt/eduplus/db && docker compose up -d
+
+name: eduplus-db
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    # Bound to the private interface. Never 0.0.0.0.
+    ports:
+      - "${WG_ADDR:?set WG_ADDR}:5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: ${POSTGRES_DB:?}
+      # Postgres only reindexes on a fresh initdb, so the collation and
+      # encoding have to be right the first time. Arabic names sort wrongly
+      # under C collation.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./backups:/backups
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    shm_size: 256mb
+    logging: &logging
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+  # Transaction pooling. Next opens a pool per app process; without a pooler
+  # in front, a handful of app replicas becomes hundreds of Postgres backends,
+  # each with its own memory, and the database falls over long before the CPU
+  # is busy. pgBouncer turns that into a small, fixed set of server
+  # connections that are handed out per transaction.
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+    ports:
+      - "${WG_ADDR:?}:6432:6432"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: ${POSTGRES_USER:?}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?}
+      DB_NAME: ${POSTGRES_DB:?}
+      # Transaction mode is what makes pooling worthwhile here. It is also why
+      # the app must not use session-level features (LISTEN/NOTIFY, advisory
+      # locks, session variables) — it does not, and prepared statements are
+      # disabled below for the same reason.
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: "1000"
+      DEFAULT_POOL_SIZE: "25"
+      RESERVE_POOL_SIZE: "5"
+      RESERVE_POOL_TIMEOUT: "3"
+      SERVER_IDLE_TIMEOUT: "60"
+      # Prisma names its prepared statements; in transaction mode a reused
+      # backend would see a name it already has. Prisma's URL must carry
+      # pgbouncer=true, and this keeps the pooler honest as well.
+      IGNORE_STARTUP_PARAMETERS: extra_float_digits,options
+      AUTH_TYPE: scram-sha-256
+      ADMIN_USERS: ${POSTGRES_USER:?}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 -U ${POSTGRES_USER}"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging: *logging
+
+  # A dump every night, kept for 14 days, plus a weekly copy. Runs in its own
+  # container so a backup failure cannot take the database with it.
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:?}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?}
+      PGDATABASE: ${POSTGRES_DB:?}
+      RETENTION_DAYS: "${BACKUP_RETENTION_DAYS:-14}"
+    volumes:
+      - ./backups:/backups
+      - ./backup.sh:/usr/local/bin/backup.sh:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "while true; do
+         sh /usr/local/bin/backup.sh || echo 'backup FAILED';
+         sleep 86400;
+       done"
+    logging: *logging
+
+volumes:
+  pgdata:
+    driver: local

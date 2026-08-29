@@ -1,59 +1,53 @@
 # EduPlus Connect
 
-School management web application — roles, daily attendance, daily observations
-and staff tasks, with per-module access rights controlled by the administrator.
+School management web application — roles, two attendance registers (daily and
+period-by-period), observations, staff tasks, exportable reports and a full
+audit trail, with per-module access rights controlled by the administrator.
+Arabic by default, English one click away, right-to-left throughout.
+
+📚 **[Full documentation →](docs/)** — product, architecture, infrastructure,
+operations runbook, capacity, and an honest
+[status and roadmap](docs/06-status.md).
 
 ## Stack
 
-Next.js 15 (App Router, Server Actions) · React 19 · Prisma 6 · SQLite (dev) ·
-Tailwind CSS 4 · `jose` JWT session cookie · bcrypt password hashes.
+Next.js 15 (App Router, Server Actions) · React 19 · Prisma 6 ·
+**PostgreSQL 16** · Tailwind CSS 4 · `jose` JWT session cookie · bcrypt password
+hashes · exceljs.
 
 ## Run it locally
 
-Local development needs no network and no Turso account — it uses the SQLite
-file in `prisma/`. Setting `TURSO_DATABASE_URL` is what switches the same code
-to the hosted database.
+PostgreSQL in every environment — the same engine locally and in production, so
+a query cannot behave one way on a laptop and another on the server.
 
 ```bash
-cp .env.example .env      # DATABASE_URL, AUTH_SECRET, SEED_PASSWORD
+docker compose -f docker-compose.dev.yml up -d   # Postgres 16 on :55432
+cp .env.example .env                              # DATABASE_URL, AUTH_SECRET, SCHOOL_TIMEZONE
 npm install
-npm run setup             # prisma generate + db push + seed
-npm run dev               # http://localhost:3100
+npm run setup                                     # migrate + seed
+npm run dev                                       # http://localhost:3100
 ```
 
-## Hosted
+## Deployment
 
-| | |
-| --- | --- |
-| App | https://eduplus-connect.onrender.com |
-| Host | Render (free plan, Frankfurt) — auto-deploys `master` |
-| Database | Turso `eduplus-connect` (libSQL, eu-west-1) |
-| Repository | https://github.com/oounis/eduplus-connect (private) |
+Two servers: nginx + Next.js replicas on one, PostgreSQL + pgBouncer + backups
+on the other, joined by WireGuard with only 80/443 exposed.
 
-The hosted database holds a real school, not the demo seed: one administrator
-and the current academic year. Everything else is entered through the app.
-
-The free plan sleeps after about fifteen minutes idle, so the first request
-after a quiet spell takes roughly a minute. Every request after that is fast.
-
-Deploying is a `git push` — Render builds `master` and restarts. If a build ever
-serves a page whose scripts 404, redeploy with the build cache cleared; a reused
-cache can leave the HTML and the chunk hashes out of step.
-
-### Changing the schema on the hosted database
-
-Prisma cannot push a schema over libSQL, so a change is applied as SQL. Note
-that `migrate diff --from-url` **cannot read a `libsql://` URL** (it fails with
-P1013), so the SQL is taken from a local push and kept in `prisma/migrations/`:
+Configuration lives in [`deploy/`](deploy/); the step-by-step is in
+[docs/04-operations.md](docs/04-operations.md).
 
 ```bash
-npx prisma db push                    # apply locally first
-# then read the DDL back out of dev.db and save it under prisma/migrations/
-TURSO_DATABASE_URL=… TURSO_AUTH_TOKEN=… npm run db:remote prisma/migrations/<file>.sql
-TURSO_DATABASE_URL=… TURSO_AUTH_TOKEN=… npm run db:remote     # list tables
+docker compose -f docker-compose.dev.yml up -d   # local
+cd deploy/db  && docker compose up -d             # server 2
+cd deploy/app && docker compose up -d --build     # server 1
 ```
 
-Credentials live in `~/.config/kogia/secrets.env` as `EDUPLUS_*`.
+Schema changes are ordinary Prisma migrations:
+
+```bash
+npm run db:migrate      # development — creates the migration
+npm run db:deploy       # production  — applies pending migrations
+```
 
 ## Demo accounts
 
@@ -169,7 +163,11 @@ already customised in `/access`.
 ## Layout
 
 ```
-prisma/schema.prisma      data model (SQLite; enums are strings + app constants)
+prisma/schema.prisma      data model (PostgreSQL; enums are strings + app constants)
+prisma/migrations/        Prisma migration history
+src/instrumentation.ts    startup config check — refuses a bad production config
+deploy/                   production configuration for the two servers
+docs/                     product, architecture, infrastructure, operations
 prisma/migrations/        hand-applied SQL for the hosted database
 src/lib/school-time.ts    the school's wall clock, and which period is live
 src/lib/periods.ts        period queries + the one rule for who may write

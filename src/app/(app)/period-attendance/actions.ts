@@ -103,7 +103,6 @@ export async function savePeriodAttendance(
       ` — ${writes.length} student(s)`,
   });
 
-  revalidatePath("/period-attendance");
   revalidatePath("/period-reports");
   return { success: t("pa.saved", { n: writes.length }) };
 }

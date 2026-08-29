@@ -57,7 +57,6 @@ export async function createAcademicYear(
     summary: `Created academic year ${parsed.data.name}`,
   });
 
-  revalidatePath("/academic");
   return { success: `${parsed.data.name} was created` };
 }
 
@@ -156,7 +155,6 @@ export async function createTerm(
     summary: `Added ${parsed.data.name} (${parsed.data.startDate} → ${parsed.data.endDate})`,
   });
 
-  revalidatePath("/academic");
   return { success: `${parsed.data.name} was added` };
 }
 

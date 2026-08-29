@@ -59,7 +59,6 @@ export async function createTask(
     summary: `Assigned "${parsed.data.title}" to ${assignee.firstName} ${assignee.lastName}`,
   });
 
-  revalidatePath("/tasks");
   return { success: `Task assigned to ${assignee.firstName}` };
 }
 
