@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { ConfirmSubmit } from "@/components/confirm-submit";
 import { requireModule } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -48,13 +49,39 @@ export default async function AccessPage() {
         <Card>
           <div className="overflow-x-auto">
             <table className="table">
+              {/* Two header rows: the role spans a pair of columns, and
+                  "view"/"edit" are named ONCE each. They used to be repeated
+                  beside every checkbox — 210 labels on this page — and because
+                  the two words are different widths, centring each one
+                  separately put their checkboxes at different x positions.
+                  That is what made the grid look ragged. Naming them in the
+                  header instead fixes the alignment structurally and removes
+                  the noise. */}
               <thead>
                 <tr>
-                  <th className="min-w-56">{t("acc.module")}</th>
+                  <th rowSpan={2} className="min-w-56 align-bottom">
+                    {t("acc.module")}
+                  </th>
                   {ROLES.map((role) => (
-                    <th key={role} className="text-center">
+                    <th
+                      key={role}
+                      colSpan={2}
+                      className="border-s border-ink-200 text-center"
+                    >
                       {t(`role.${role}`)}
                     </th>
+                  ))}
+                </tr>
+                <tr>
+                  {ROLES.map((role) => (
+                    <Fragment key={role}>
+                      <th className="w-14 border-s border-ink-200 px-0 pb-2 pt-0 text-center text-[10px] font-normal normal-case tracking-normal">
+                        {t("acc.view")}
+                      </th>
+                      <th className="w-14 px-0 pb-2 pt-0 text-center text-[10px] font-normal normal-case tracking-normal">
+                        {t("acc.edit")}
+                      </th>
+                    </Fragment>
                   ))}
                 </tr>
               </thead>
@@ -71,31 +98,34 @@ export default async function AccessPage() {
                     </td>
                     {ROLES.map((role) => {
                       const current = grant(role, moduleKey);
+                      const moduleLabel = t(`module.${moduleKey}.label`);
+                      const roleLabel = t(`role.${role}`);
                       return (
-                        <td key={role} className="text-center">
-                          <div className="flex flex-col items-center gap-1">
-                            <label className="flex items-center gap-1 text-[11px] text-ink-500">
-                              <input
-                                type="checkbox"
-                                name={`${role}:${moduleKey}:view`}
-                                defaultChecked={current.canView}
-                                disabled={!canEdit}
-                                className="h-3.5 w-3.5 accent-brand-600"
-                              />
-                              {t("acc.view")}
-                            </label>
-                            <label className="flex items-center gap-1 text-[11px] text-ink-500">
-                              <input
-                                type="checkbox"
-                                name={`${role}:${moduleKey}:edit`}
-                                defaultChecked={current.canEdit}
-                                disabled={!canEdit}
-                                className="h-3.5 w-3.5 accent-brand-600"
-                              />
-                              {t("acc.edit")}
-                            </label>
-                          </div>
-                        </td>
+                        <Fragment key={role}>
+                          <td className="border-s border-ink-100 px-0 text-center">
+                            <input
+                              type="checkbox"
+                              name={`${role}:${moduleKey}:view`}
+                              defaultChecked={current.canView}
+                              disabled={!canEdit}
+                              // The visible label now lives in the column
+                              // header, which a screen reader reading cell by
+                              // cell never reaches. Spell it out here.
+                              aria-label={`${roleLabel} — ${moduleLabel} — ${t("acc.view")}`}
+                              className="h-4 w-4 accent-brand-600"
+                            />
+                          </td>
+                          <td className="px-0 text-center">
+                            <input
+                              type="checkbox"
+                              name={`${role}:${moduleKey}:edit`}
+                              defaultChecked={current.canEdit}
+                              disabled={!canEdit}
+                              aria-label={`${roleLabel} — ${moduleLabel} — ${t("acc.edit")}`}
+                              className="h-4 w-4 accent-brand-600"
+                            />
+                          </td>
+                        </Fragment>
                       );
                     })}
                   </tr>
