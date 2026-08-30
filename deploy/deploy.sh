@@ -43,13 +43,19 @@ echo "==> 4/5  rolling replicas"
 for svc in app1 app2 app3 app4; do
   printf '        %s ... ' "$svc"
   "${COMPOSE[@]}" up -d --no-deps --force-recreate "$svc" >/dev/null 2>&1
-  for _ in $(seq 1 30); do
-    if [ "$(docker inspect -f '{{.State.Health.Status}}' "eduplus-${svc#app}" 2>/dev/null || \
-            docker inspect -f '{{.State.Health.Status}}' "eduplus-${svc}" 2>/dev/null)" = "healthy" ]; then
-      echo "healthy"; break
+  # The container is named after the service (eduplus-app1). Wait up to 3
+  # minutes: the image has a 40s start_period and a 30s check interval, so a
+  # shorter wait reports nothing and moves on to recreate the next replica
+  # while this one is still starting — which is how you take all four down
+  # at once during what is supposed to be a rolling deploy.
+  ok=""
+  for _ in $(seq 1 60); do
+    if [ "$(docker inspect -f '{{.State.Health.Status}}' "eduplus-${svc}" 2>/dev/null)" = "healthy" ]; then
+      ok=1; echo "healthy"; break
     fi
     sleep 3
   done
+  [ -n "$ok" ] || { echo "NOT healthy — stopping the rollout, $svc did not come up"; exit 1; }
 done
 
 echo "==> 5/5  verifying"
