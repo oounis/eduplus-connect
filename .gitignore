@@ -25,3 +25,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ad-hoc debugging screenshots and scripts
+shot-*
+shot.mjs
+shot2.mjs
