@@ -63,19 +63,16 @@ COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=build --chown=nextjs:nodejs /app/public ./public
 
-# Migrations and the Prisma CLI, so the container can run `migrate deploy`
-# against the database on release without a second image.
+# The generated Prisma CLIENT, which the running app needs — and the schema,
+# which it reads at startup.
+#
+# The prisma CLI is deliberately NOT here. It pulls a tree of its own
+# dependencies (@prisma/config, effect, ...) that exist only in the build
+# stage, and dragging them in would undo the point of a slim runtime image.
+# `migrate deploy` runs from the build stage instead; see deploy/docker-compose.yml.
 COPY --from=build --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=build --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=build --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=build --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
-# The package alone is not enough: `npx prisma` resolves through
-# node_modules/.bin. The link has to be MADE here, not copied — COPY
-# dereferences symlinks, which turns .bin/prisma into a real file that then
-# looks for its .wasm next to itself and dies at release time.
-RUN mkdir -p node_modules/.bin \
- && ln -sf ../prisma/build/index.js node_modules/.bin/prisma \
- && chown -R nextjs:nodejs node_modules/.bin
 
 USER nextjs
 EXPOSE 3100

@@ -65,11 +65,17 @@ services:
 
   # One-shot: applies pending Prisma migrations, then exits. Uses DIRECT_URL
   # because migrations need a real session. Runs before the replicas serve.
+  #
+  # Built from the `build` stage, not the runtime one: the Prisma CLI needs
+  # devDependencies that the shipped image deliberately does not carry. This
+  # image never serves traffic — it exists for the length of one migration.
   migrate:
     build:
       context: ..
       dockerfile: Dockerfile
-    image: eduplus-connect:latest
+      target: build
+    image: eduplus-connect:migrate
+    working_dir: /app
     restart: "no"
     environment:
       NODE_ENV: production
