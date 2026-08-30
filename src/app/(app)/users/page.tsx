@@ -121,7 +121,12 @@ export default async function UsersPage({
                     type="text"
                     className="input"
                     minLength={8}
-                    defaultValue="Passw0rd!"
+                    // No default in production: a shared, published default
+                    // password is the account every new user forgets to
+                    // change. Whoever creates the account chooses one.
+                    defaultValue={
+                      process.env.NODE_ENV !== "production" ? "Passw0rd!" : undefined
+                    }
                     required
                   />
                 </div>

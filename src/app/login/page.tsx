@@ -94,26 +94,32 @@ export default async function LoginPage() {
             </p>
           </div>
 
-          <details className="mt-8 rounded-xl border border-ink-200 bg-white p-4">
-            <summary className="cursor-pointer text-xs font-semibold text-ink-700">
-              {t("login.demoAccounts")}
-            </summary>
-            <ul className="mt-3 space-y-2">
-              {DEMO_ACCOUNTS.map((account) => (
-                <li key={account.email} className="text-xs">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="font-medium text-ink-800">
-                      {t(`role.${account.roleKey}`)}
-                    </span>
-                    <code className="text-[11px] text-brand-700">
-                      {account.email}
-                    </code>
-                  </div>
-                  <p className="text-ink-500">{t(`demo.${account.roleKey}`)}</p>
-                </li>
-              ))}
-            </ul>
-          </details>
+          {/* Development only. On a real school's sign-in page this listed
+              seven demo accounts and published their shared password, which
+              is both an invitation and a lie — those accounts do not exist
+              in production. */}
+          {process.env.NODE_ENV !== "production" && (
+            <details className="mt-8 rounded-xl border border-ink-200 bg-white p-4">
+              <summary className="cursor-pointer text-xs font-semibold text-ink-700">
+                {t("login.demoAccounts")}
+              </summary>
+              <ul className="mt-3 space-y-2">
+                {DEMO_ACCOUNTS.map((account) => (
+                  <li key={account.email} className="text-xs">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="font-medium text-ink-800">
+                        {t(`role.${account.roleKey}`)}
+                      </span>
+                      <code className="text-[11px] text-brand-700">
+                        {account.email}
+                      </code>
+                    </div>
+                    <p className="text-ink-500">{t(`demo.${account.roleKey}`)}</p>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
 
           <div className="mt-6 flex items-center justify-center gap-2 text-xs text-ink-500">
             <span>{t("app.language")}</span>

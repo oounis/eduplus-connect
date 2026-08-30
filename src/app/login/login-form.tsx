@@ -4,6 +4,8 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { login, type LoginState } from "./actions";
 
+const IS_DEV = process.env.NODE_ENV !== "production";
+
 function SubmitButton({ label, busy }: { label: string; busy: string }) {
   const { pending } = useFormStatus();
   return (
@@ -39,7 +41,12 @@ export default function LoginForm({
           type="email"
           autoComplete="username"
           required
-          defaultValue="admin@eduplus.school"
+          // Pre-filled for local development only. In production this form
+          // used to arrive with a real administrator address and the WRONG
+          // password already in it, so the first sign-in attempt always
+          // failed with "email or password is incorrect" — and it told
+          // anyone who opened the page what the admin account is called.
+          defaultValue={IS_DEV ? "admin@eduplus.school" : undefined}
           className="input"
           placeholder="you@eduplus.school"
         />
@@ -55,7 +62,7 @@ export default function LoginForm({
           type="password"
           autoComplete="current-password"
           required
-          defaultValue="Passw0rd!"
+          defaultValue={IS_DEV ? "Passw0rd!" : undefined}
           className="input"
           placeholder="••••••••"
         />
