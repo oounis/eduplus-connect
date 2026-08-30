@@ -66,20 +66,23 @@ export default async function AccessPage() {
                     <th
                       key={role}
                       colSpan={2}
-                      className="border-s border-ink-200 text-center"
+                      className="border-s border-ink-200"
                     >
-                      {t(`role.${role}`)}
+                      {/* Centred on a block inside the cell: `.table thead th`
+                          sets text-left through @apply, which wins over a
+                          text-center utility on the same element. */}
+                      <div className="text-center">{t(`role.${role}`)}</div>
                     </th>
                   ))}
                 </tr>
                 <tr>
                   {ROLES.map((role) => (
                     <Fragment key={role}>
-                      <th className="w-14 border-s border-ink-200 px-0 pb-2 pt-0 text-center text-[10px] font-normal normal-case tracking-normal">
-                        {t("acc.view")}
+                      <th className="w-14 border-s border-ink-200 px-0 pb-2 pt-0 text-[10px] font-normal normal-case tracking-normal">
+                        <div className="text-center">{t("acc.view")}</div>
                       </th>
-                      <th className="w-14 px-0 pb-2 pt-0 text-center text-[10px] font-normal normal-case tracking-normal">
-                        {t("acc.edit")}
+                      <th className="w-14 px-0 pb-2 pt-0 text-[10px] font-normal normal-case tracking-normal">
+                        <div className="text-center">{t("acc.edit")}</div>
                       </th>
                     </Fragment>
                   ))}
