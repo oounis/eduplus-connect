@@ -40,7 +40,7 @@ half-migrated database.
 
 ```bash
 cd /opt/kogia/apps/eduplus
-C="docker compose -f src/deploy/docker-compose.yml --env-file .env --project-directory src"
+C="docker compose -f src/deploy/docker-compose.yml --env-file .env"
 
 $C ps                       # what is running
 $C logs -f app1             # follow one replica

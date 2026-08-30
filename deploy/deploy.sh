@@ -9,7 +9,11 @@ set -euo pipefail
 
 APP_DIR="/opt/kogia/apps/eduplus"
 SRC_DIR="${APP_DIR}/src"
-COMPOSE=("docker" "compose" "-f" "${SRC_DIR}/deploy/docker-compose.yml" "--env-file" "${APP_DIR}/.env" "--project-directory" "${SRC_DIR}")
+# No --project-directory: compose resolves `context: ..` relative to the
+# compose file's own directory, which is exactly src/ — where the Dockerfile
+# is. Overriding the project directory silently repoints that one level too
+# high and the build cannot find the Dockerfile.
+COMPOSE=("docker" "compose" "-f" "${SRC_DIR}/deploy/docker-compose.yml" "--env-file" "${APP_DIR}/.env")
 
 cd "${SRC_DIR}"
 
