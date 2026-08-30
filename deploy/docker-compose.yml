@@ -1,0 +1,89 @@
+# EduPlus Connect on kogia-prod-01.
+#
+# This file describes ONLY the app. It does not own TLS, routing, the
+# database, or backups — those belong to the shared platform in
+# /opt/kogia/platform, so that the ninth app on this host does not have to
+# reinvent any of them. What is left here is genuinely EduPlus-specific.
+#
+#   cd /opt/kogia/apps/eduplus
+#   docker compose -f src/deploy/docker-compose.yml --env-file .env up -d
+#
+# or simply: ./src/deploy/deploy.sh
+name: eduplus
+
+x-app: &app
+  build:
+    context: ..
+    dockerfile: Dockerfile
+  image: eduplus-connect:latest
+  restart: unless-stopped
+  security_opt: [no-new-privileges:true]
+  environment:
+    NODE_ENV: production
+    PORT: "3100"
+    DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+    AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET}
+    SCHOOL_TIMEZONE: ${SCHOOL_TIMEZONE:-Asia/Bahrain}
+    TZ: UTC
+  networks: [edge, data]
+  # Not published. The only way to reach these is through Traefik.
+  expose: ["3100"]
+  healthcheck:
+    test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3100/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+    interval: 30s
+    timeout: 5s
+    retries: 3
+    start_period: 40s
+  logging: &logging
+    driver: json-file
+    options: { max-size: "10m", max-file: "5" }
+  # Identical labels on every replica on purpose: Traefik aggregates
+  # containers that name the same service into one load-balanced pool.
+  labels: &labels
+    traefik.enable: "true"
+    traefik.docker.network: kogia-edge
+    traefik.http.routers.eduplus.rule: Host(`${APP_HOSTNAME:?set APP_HOSTNAME}`)
+    traefik.http.routers.eduplus.entrypoints: websecure
+    traefik.http.routers.eduplus.middlewares: rate-limit@file
+    traefik.http.services.eduplus.loadbalancer.server.port: "3100"
+    # Traefik's own probe, independent of docker's: a replica that stops
+    # answering is pulled out of rotation within ~10s instead of serving
+    # errors until docker notices.
+    traefik.http.services.eduplus.loadbalancer.healthcheck.path: /api/health
+    traefik.http.services.eduplus.loadbalancer.healthcheck.interval: "10s"
+    traefik.http.services.eduplus.loadbalancer.healthcheck.timeout: "3s"
+
+services:
+  # Node is single-threaded per process: one container uses one core however
+  # many the host has. Four replicas is roughly (vCPU / 3), leaving the other
+  # cores for Postgres, Traefik, builds and the apps that come next — this
+  # host is shared now, so EduPlus does not get to take all twelve.
+  app1: { <<: *app, container_name: eduplus-app1, labels: *labels }
+  app2: { <<: *app, container_name: eduplus-app2, labels: *labels }
+  app3: { <<: *app, container_name: eduplus-app3, labels: *labels }
+  app4: { <<: *app, container_name: eduplus-app4, labels: *labels }
+
+  # One-shot: applies pending Prisma migrations, then exits. Uses DIRECT_URL
+  # because migrations need a real session. Runs before the replicas serve.
+  migrate:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: eduplus-connect:latest
+    restart: "no"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DIRECT_URL:?set DIRECT_URL}
+    command: ["npx", "prisma", "migrate", "deploy"]
+    networks: [data]
+    labels:
+      traefik.enable: "false"
+    logging: *logging
+
+networks:
+  edge:
+    name: kogia-edge
+    external: true
+  data:
+    name: kogia-data
+    external: true
