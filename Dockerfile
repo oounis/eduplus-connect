@@ -70,9 +70,12 @@ COPY --from=build --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules
 COPY --from=build --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=build --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
 # The package alone is not enough: `npx prisma` resolves through
-# node_modules/.bin, and without this symlink the release migration fails
-# with "sh: prisma: not found" — after the image has already built.
-COPY --from=build --chown=nextjs:nodejs /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
+# node_modules/.bin. The link has to be MADE here, not copied — COPY
+# dereferences symlinks, which turns .bin/prisma into a real file that then
+# looks for its .wasm next to itself and dies at release time.
+RUN mkdir -p node_modules/.bin \
+ && ln -sf ../prisma/build/index.js node_modules/.bin/prisma \
+ && chown -R nextjs:nodejs node_modules/.bin
 
 USER nextjs
 EXPOSE 3100
