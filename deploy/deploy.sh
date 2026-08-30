@@ -24,6 +24,17 @@ git reset --hard --quiet "origin/$(git rev-parse --abbrev-ref HEAD)"
 AFTER="$(git rev-parse --short HEAD)"
 echo "        ${BEFORE} -> ${AFTER}"
 
+# This script is inside the tree it just updated. Bash reads a script
+# incrementally from disk, so a version that changed under a running shell is
+# at best stale and at worst executed half-old, half-new. If this file moved,
+# hand over to the new copy and stop.
+if [ "${BEFORE}" != "${AFTER}" ] && [ -z "${KOGIA_DEPLOY_REEXEC:-}" ]; then
+  if ! git diff --quiet "${BEFORE}" "${AFTER}" -- deploy/deploy.sh; then
+    echo "        deploy.sh itself changed — re-executing the new version"
+    KOGIA_DEPLOY_REEXEC=1 exec "${SRC_DIR}/deploy/deploy.sh" "$@"
+  fi
+fi
+
 echo "==> 2/5  building image"
 # Built here rather than pulled: one host, one operator, no registry to
 # authenticate against. When the second VPS arrives this becomes a push to
