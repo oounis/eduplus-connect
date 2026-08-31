@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { SubmitButton } from "@/components/action-form";
 import { showToast } from "@/components/toast";
 import { fill } from "@/lib/i18n";
@@ -53,9 +54,14 @@ export default function QuickRegister({
     Object.fromEntries(students.map((s) => [s.id, s.status ?? ""])),
   );
 
+  const router = useRouter();
+  // True only on the instance that submitted, so the refresh cannot loop.
+  const didSubmit = useRef(false);
+
   const [state, action] = useActionState<QuickState, FormData>(
     async (previous, formData) => {
       const result = await saveQuickAttendance(previous, formData);
+      didSubmit.current = true;
       // Raised here rather than from an effect: the page re-renders after the
       // save and would take an in-tree message with it. See components/toast.
       if (result.success) showToast(result.success, "success");
@@ -64,6 +70,24 @@ export default function QuickRegister({
     },
     {},
   );
+
+  /**
+   * Pull the page's server data again after a save.
+   *
+   * The day grid below this form, and each student's saved status, are rendered
+   * on the server. Saving wrote the rows but left that render untouched, so the
+   * period the teacher had just taken still read "not taken" underneath the
+   * form — and a teacher who cannot see their work reasonably does it again.
+   *
+   * This component's own state is what holds the radio buttons, and it survives
+   * the refresh (React keeps the instance), so nothing the teacher tapped is
+   * lost and the buttons do not flicker.
+   */
+  useEffect(() => {
+    if (!state.success || !didSubmit.current) return;
+    didSubmit.current = false;
+    router.refresh();
+  }, [router, state]);
 
   const markAll = (status: AttendanceStatus | "") =>
     setStatuses(Object.fromEntries(students.map((s) => [s.id, status])));
@@ -140,6 +164,14 @@ export default function QuickRegister({
       {state.error && (
         <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
           {state.error}
+        </p>
+      )}
+
+      {/* Said here as well as in the toast: this page is used standing up, at
+          arm's length, and a message in the corner of the screen is missed. */}
+      {state.success && (
+        <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800">
+          {state.success}
         </p>
       )}
 

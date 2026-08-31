@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
@@ -217,6 +218,18 @@ export async function saveQuickAttendance(
         ` on ${context.dateISO} via quick attendance — ${writes.length} student(s)`,
     },
   );
+
+  // The register the teacher is looking at is server-rendered — the day grid
+  // under it, and each student's saved status — so without this the page still
+  // says the period was never taken, seconds after taking it. A teacher then
+  // reasonably saves again. It happened: three saves inside 61 seconds for one
+  // period, in the audit trail for 2026-08-31.
+  //
+  // Every other form in this app gets this for free from ActionForm, which
+  // calls router.refresh() on success. This one is hand-rolled, and was the
+  // only write path in the app that refreshed nothing.
+  revalidatePath("/quick/register");
+  revalidatePath("/period-reports");
 
   return {
     success: t("pa.saved", { n: writes.length }),
