@@ -18,8 +18,8 @@ import {
 
 const prisma = new PrismaClient();
 const PASSWORD = process.env.SEED_PASSWORD ?? "Passw0rd!";
-// Demo quick-attendance PIN. Development only — a real school sets its own
-// per teacher, and seed-production.ts deliberately sets none.
+// Demo PIN for the two pages that need no email login. Development only — a
+// real school sets its own per person, and seed-production.ts sets none.
 const QUICK_DEMO_PIN = process.env.SEED_QUICK_PIN ?? "482913";
 
 // Deterministic pseudo-random so re-seeding gives comparable numbers.
@@ -163,13 +163,14 @@ async function main() {
     await makeUser("teacher3@eduplus.school", "Ilhem", "Guesmi", "TEACHER"),
   ];
 
-  // Quick-attendance PINs for the demo, so /quick has someone to choose.
-  // Only the first two, so the "opt-in per teacher" behaviour is visible:
-  // Ilhem has no PIN and does not appear on that page.
+  // PINs for the demo, so /quick and /student-data both have someone to
+  // choose. Deliberately not everybody: Ilhem and Sonia have no PIN and do not
+  // appear on those pages at all, which is the "opt-in per person" behaviour
+  // and the thing the tests assert.
   const demoPinHash = await bcrypt.hash(QUICK_DEMO_PIN, 10);
-  for (const teacher of teachers.slice(0, 2)) {
+  for (const person of [...teachers.slice(0, 2), supervisors[0]]) {
     await prisma.user.update({
-      where: { id: teacher.id },
+      where: { id: person.id },
       data: { quickPin: demoPinHash },
     });
   }
@@ -179,7 +180,9 @@ async function main() {
     await makeUser("parent2@eduplus.school", "Hela", "Tounsi", "PARENT"),
   ];
   console.log("  users: 1 admin, 1 deputy, 2 staff, 2 supervisors, 3 teachers, 2 parents");
-  console.log(`  quick attendance: PIN ${QUICK_DEMO_PIN} for 2 of 3 teachers`);
+  console.log(
+    `  no-login PIN ${QUICK_DEMO_PIN}: 2 of 3 teachers, 1 of 2 supervisors`,
+  );
 
   // ---- academic year + terms --------------------------------------------
   const yearStart = new Date(Date.UTC(new Date().getFullYear(), 8, 15));

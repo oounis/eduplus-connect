@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { assertModule, getCurrentUser } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
 import {
+  CONTACT_LIMITS,
   canEditStudentContact,
   contactDenialMessage,
 } from "@/lib/student-contact";
@@ -30,13 +31,13 @@ const contactSchema = z.object({
   email: z
     .string()
     .trim()
-    .max(200)
+    .max(CONTACT_LIMITS.email)
     .refine((v) => v === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), {
       message: "That email address does not look right",
     }),
-  phone: z.string().trim().max(40),
-  phone2: z.string().trim().max(40),
-  phone3: z.string().trim().max(40),
+  phone: z.string().trim().max(CONTACT_LIMITS.phone),
+  phone2: z.string().trim().max(CONTACT_LIMITS.phone2),
+  phone3: z.string().trim().max(CONTACT_LIMITS.phone3),
 });
 
 const orNull = (value: string) => (value.trim() === "" ? null : value.trim());

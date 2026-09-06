@@ -43,7 +43,14 @@ export const config = {
      * It is NOT unauthenticated: those pages check their own signed cookie
      * (lib/quick-session.ts) and show nothing without it. Only the list of
      * teacher names is public; the roster is behind the PIN.
+     *
+     * /student-data is exempt for the same reason and works the same way — a
+     * supervisor reaches their own classes' contact details, lists and message
+     * files without an email login, behind their own PIN and their own signed
+     * cookie (lib/data-session.ts). Only the list of supervisor names is
+     * public. The two cookies are signed with different audiences, so neither
+     * token opens the other's pages.
      */
-    "/((?!login|quick|api/health|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!login|quick|student-data|api/health|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

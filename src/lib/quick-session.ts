@@ -80,22 +80,3 @@ export const quickCookieOptions = {
   path: "/quick",
   maxAge: MAX_AGE_SECONDS,
 };
-
-/**
- * PIN rules. Short enough to type on a phone between lessons, long enough that
- * guessing it is impractical once the rate limiter is counting: 6 digits is
- * a million combinations against a 5-attempt lockout.
- */
-export const QUICK_PIN_LENGTH = 6;
-
-export function isValidPinFormat(pin: string): boolean {
-  return new RegExp(`^\\d{${QUICK_PIN_LENGTH}}$`).test(pin);
-}
-
-/** Rejects the PINs people actually choose when left to themselves. */
-export function isWeakPin(pin: string): boolean {
-  if (/^(\d)\1+$/.test(pin)) return true; // 000000, 111111
-  const ascending = "0123456789012345";
-  const descending = "9876543210987654";
-  return ascending.includes(pin) || descending.includes(pin);
-}

@@ -7,7 +7,11 @@ export type AuditAction =
   | "DELETE"
   | "ASSIGN"
   | "RESET"
-  | "IMPORT";
+  | "IMPORT"
+  // Reading is normally not worth a line of history. Bulk export of a
+  // contact database is: it is the moment several hundred families' phone
+  // numbers leave the system, and the no-login page can do it.
+  | "EXPORT";
 
 export const AUDIT_ENTITIES = [
   "user",

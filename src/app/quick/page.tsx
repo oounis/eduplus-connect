@@ -6,7 +6,8 @@ import { getI18n } from "@/lib/locale";
 import { formatDate, toDayKey } from "@/lib/dates";
 import { getPeriods } from "@/lib/periods";
 import { findLivePeriod, findNextPeriod, schoolClock } from "@/lib/school-time";
-import { QUICK_COOKIE, verifyQuickSession, QUICK_PIN_LENGTH } from "@/lib/quick-session";
+import { QUICK_COOKIE, verifyQuickSession } from "@/lib/quick-session";
+import { STAFF_PIN_LENGTH } from "@/lib/staff-pin";
 import { KogiaTile } from "@/components/kogia";
 import QuickSignInForm from "./sign-in-form";
 
@@ -32,8 +33,26 @@ export default async function QuickPage({
   const params = await searchParams;
 
   // Already signed in on this device — go straight to the register.
+  //
+  // As on /student-data, the token must still resolve to a teacher. The
+  // register re-reads them and sends an unknown one back here; checking only
+  // the signature here would bounce them straight back, so clearing a PIN or
+  // deactivating an account mid-session left that classroom device in an
+  // infinite redirect rather than at the "choose your name" step.
   const jar = await cookies();
-  if (await verifyQuickSession(jar.get(QUICK_COOKIE)?.value)) {
+  const session = await verifyQuickSession(jar.get(QUICK_COOKIE)?.value);
+  if (
+    session &&
+    (await prisma.user.findFirst({
+      where: {
+        id: session.userId,
+        role: "TEACHER",
+        isActive: true,
+        quickPin: { not: null },
+      },
+      select: { id: true },
+    }))
+  ) {
     redirect("/quick/register");
   }
 
@@ -122,10 +141,10 @@ export default async function QuickPage({
                 teacherId={chosen.id}
                 labels={{
                   pin: t("quick.pin"),
-                  pinHint: t("quick.pinHint", { n: QUICK_PIN_LENGTH }),
+                  pinHint: t("quick.pinHint", { n: STAFF_PIN_LENGTH }),
                   submit: t("quick.open"),
                 }}
-                pinLength={QUICK_PIN_LENGTH}
+                pinLength={STAFF_PIN_LENGTH}
               />
             </>
           ) : (

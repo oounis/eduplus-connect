@@ -7,10 +7,11 @@ import { prisma } from "@/lib/db";
 import { assertModule } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
 import {
-  QUICK_PIN_LENGTH,
+  STAFF_PIN_LENGTH,
+  isPinRole,
   isValidPinFormat,
   isWeakPin,
-} from "@/lib/quick-session";
+} from "@/lib/staff-pin";
 import { ROLES } from "@/lib/constants";
 
 export type ActionState = { error?: string; success?: string };
@@ -177,8 +178,11 @@ export async function setQuickPin(
 
   const target = await prisma.user.findUnique({ where: { id } });
   if (!target) return { error: "That account no longer exists" };
-  if (target.role !== "TEACHER") {
-    return { error: "Quick attendance is for teachers only" };
+  // A PIN opens exactly one page, decided by the role: the period register
+  // for a teacher, their own students' data for a supervisor. Nobody else has
+  // a page to open, so nobody else gets a PIN.
+  if (!isPinRole(target.role)) {
+    return { error: "A PIN can only be given to a teacher or a supervisor" };
   }
 
   // Empty clears it, which is how quick access is switched off for a person.
@@ -194,7 +198,7 @@ export async function setQuickPin(
   }
 
   if (!isValidPinFormat(pin)) {
-    return { error: `The PIN must be exactly ${QUICK_PIN_LENGTH} digits` };
+    return { error: `The PIN must be exactly ${STAFF_PIN_LENGTH} digits` };
   }
   if (isWeakPin(pin)) {
     return { error: "That PIN is too easy to guess — avoid 123456 or 000000" };

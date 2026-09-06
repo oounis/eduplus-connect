@@ -92,6 +92,18 @@ export default async function LoginPage() {
             <p className="mt-2 text-center text-xs text-ink-500">
               {t("quick.fromLoginHint")}
             </p>
+
+            {/* The supervisor's way in: their own classes' student data, with
+                a PIN instead of an email and password. */}
+            <Link
+              href="/student-data"
+              className="btn-secondary mt-4 flex w-full items-center justify-center gap-2 py-2.5"
+            >
+              {t("sd.fromLogin")}
+            </Link>
+            <p className="mt-2 text-center text-xs text-ink-500">
+              {t("sd.fromLoginHint")}
+            </p>
           </div>
 
           {/* Development only. On a real school's sign-in page this listed

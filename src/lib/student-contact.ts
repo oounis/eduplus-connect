@@ -21,6 +21,22 @@ import type { CurrentUser } from "./auth";
 export const CONTACT_FIELDS = ["email", "phone", "phone2", "phone3"] as const;
 export type ContactField = (typeof CONTACT_FIELDS)[number];
 
+/**
+ * Length ceilings for the four fields.
+ *
+ * Here rather than in either action because there are two write paths — the
+ * signed-in form on a student's profile, and the supervisor's whole-class save
+ * on /student-data — and a limit enforced by only one of them is not a limit.
+ * Postgres `text` has no length of its own, so nothing below this stops a
+ * crafted post writing a megabyte into a phone number.
+ */
+export const CONTACT_LIMITS: Record<ContactField, number> = {
+  email: 200,
+  phone: 40,
+  phone2: 40,
+  phone3: 40,
+};
+
 export type ContactPermission =
   | { allowed: true; reason: "module" | "supervisor" }
   | { allowed: false; reason: "no-access" | "not-my-class" | "no-student" };

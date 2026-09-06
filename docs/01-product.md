@@ -163,6 +163,65 @@ recorded, not the first: a student marked absent at 08:00 who arrives by the
 third period ends the day present, and that is what a parent should be told.
 The footer shows how many were away in each period and who took each register.
 
+### 5c. Student data — the supervisor without an email login *(added 2026-09-06)*
+
+The second way in that needs no email address, and the one that carries the
+most. The login page carries **بيانات الطالب** — "Student data".
+
+1. Pick your name from the list of supervisors.
+2. Type your PIN.
+3. You get the classes assigned to you, and one of them at a time.
+
+For the class you open:
+
+- **The contact details of every student**, editable — phone, phone 2, phone 3
+  and email — and **one button saves all of them**. A dropdown narrows the table
+  to a single student when only one needs fixing.
+- **The student list as Excel**: عدد رتبي · رقم · الطالب · الاسم · القسم ·
+  الهاتف · الهاتف 2 · الهاتف 3 · الإيميل · ملاحظات. The notes column is the last
+  observation written about the student — the module Arabic calls الملاحظات —
+  rather than an empty column to fill in by hand.
+- **The monthly attendance table as Excel**: one sheet per month, the students
+  of every class down the side, a column for each day of that month, and each
+  student's absence total for the month at the end.
+- **The message file as Excel**: two columns, a phone number and the text to
+  send to it, which is the shape a bulk-SMS tool reads. Either personalised
+  — *ولي أمر الطالب محمد محمد، نعلمكم بتأخير ابنكم اليوم.* — or the same sentence
+  for everybody. A second and third number are not two more columns: they become
+  more rows under the same phone heading, each carrying that student's own
+  message.
+
+Ticking students narrows every one of those files; ticking nothing means the
+whole class. A second sheet in the message file names the students left out for
+having no number recorded, because a file of 300 rows for 320 students otherwise
+quietly means twenty families were not contacted.
+
+**Why there is a PIN, again.** The request was for a page that needs no email
+login. This one is a larger exposure than the register: a roster is a list of
+names, this is a contact database, and it can be overwritten. Left fully open it
+would publish every child's guardians' phone numbers to anyone who finds the
+URL. So the same bargain as quick attendance — no email and password, but a PIN.
+
+| | |
+|---|---|
+| **Public before the PIN** | Only the list of supervisor names. No class, no student, no number. |
+| **Behind the PIN** | That supervisor's own assigned classes, for the current academic year, and nothing else in the school. |
+| **Reaches** | Its own cookie, its own audience, its own path. A quick-attendance token does not open it and its token does not open the register — the audience check refuses both. |
+| **Writes** | The four contact columns only. It cannot rename a student, move them between classes or delete them. |
+| **Exports** | Scoped by the same resolver the page uses. A student id posted from another class is a *narrowing* filter on top of the class filter, so it selects nothing rather than that student. |
+| **Attribution** | Every save is one line of history per student, and every export is one line of its own, both marked "via student data". |
+| **Opt-in per supervisor** | No PIN means they do not appear on the page at all. |
+| **Rate limited** | Per supervisor *and* per address. |
+| **Finish** | Clears the device. |
+
+**Which register the monthly table reads.** The daily register — the
+supervisor's own — wherever it exists. Only where a day has no daily row at all
+does it fall back to the period registers, and then the *worst* status recorded
+that day wins. A child away all morning who is marked present in the last period
+was not present that day, and taking the last period alone (which is how the
+classroom day grid picks its "final" status, for a different purpose) would say
+they were.
+
 **Export the day to Excel** — three sheets:
 
 | Sheet | Holds |

@@ -9,7 +9,7 @@ import { getI18n } from "@/lib/locale";
 import { Card, PageHeader, RoleBadge } from "@/components/ui";
 import { ActionForm } from "@/components/action-form";
 import { deleteUser, resetPassword, setQuickPin, updateUser } from "../actions";
-import { QUICK_PIN_LENGTH } from "@/lib/quick-session";
+import { isPinRole, STAFF_PIN_LENGTH } from "@/lib/staff-pin";
 
 export default async function EditUserPage({
   params,
@@ -134,19 +134,33 @@ export default async function EditUserPage({
             </div>
           </Card>
 
-          {/* Quick attendance is opt-in per teacher: no PIN, and they do not
-              appear on the /quick page at all. */}
-          {user.role === "TEACHER" && (
-            <Card className="mt-6" title={t("usr.quickPinTitle")}>
+          {/* A PIN is opt-in per person: without one they do not appear on
+              the no-login page at all. A teacher's opens the period register,
+              a supervisor's opens their own students' data. */}
+          {isPinRole(user.role) && (
+            <Card
+              className="mt-6"
+              title={t(
+                user.role === "SUPERVISOR"
+                  ? "usr.dataPinTitle"
+                  : "usr.quickPinTitle",
+              )}
+            >
               <div className="px-5 py-4">
                 <p className="mb-3 text-xs text-ink-500">
-                  {t("usr.quickPinIntro", { name: user.firstName })}{" "}
-                  <code>/quick</code>{" "}
+                  {t(
+                    user.role === "SUPERVISOR"
+                      ? "usr.dataPinIntro"
+                      : "usr.quickPinIntro",
+                    { name: user.firstName },
+                  )}{" "}
+                  <code>
+                    {user.role === "SUPERVISOR" ? "/student-data" : "/quick"}
+                  </code>{" "}
                   {t("usr.quickPinIntro2")}{" "}
                   {user.quickPin
                     ? t("usr.quickPinSet")
-                    : t("usr.quickPinNotSet")}{" "}
-                  {t("usr.quickPinOff")}
+                    : t("usr.quickPinNotSet")}
                 </p>
                 <ActionForm
                   action={setQuickPin}
@@ -157,15 +171,15 @@ export default async function EditUserPage({
                 >
                   <input type="hidden" name="id" value={user.id} />
                   <label className="label" htmlFor="pin">
-                    {t("usr.pinLabel", { n: QUICK_PIN_LENGTH })}
+                    {t("usr.pinLabel", { n: STAFF_PIN_LENGTH })}
                   </label>
                   <input
                     id="pin"
                     name="pin"
                     type="text"
                     inputMode="numeric"
-                    pattern={`\\d{${QUICK_PIN_LENGTH}}`}
-                    maxLength={QUICK_PIN_LENGTH}
+                    pattern={`\\d{${STAFF_PIN_LENGTH}}`}
+                    maxLength={STAFF_PIN_LENGTH}
                     className="input max-w-xs tracking-[0.3em]"
                     placeholder="482913"
                   />

@@ -1,6 +1,6 @@
 # 06 — Status and Roadmap
 
-**Last updated: 2026-08-29.**
+**Last updated: 2026-09-06.**
 
 The honest picture. Anything marked ✅ has been run and the output is quoted;
 anything marked 📝 is written but not executed; anything marked ❌ does not
@@ -40,6 +40,9 @@ can be done without hardware is done.
 | Daily attendance register | ✅ | `ui-test` |
 | **Attendance by period** | ✅ | `period-test` (16 checks) |
 | **Quick attendance (PIN, no full sign-in)** | ✅ | `quick-test` (24 checks) |
+| **Student data (supervisor, no full sign-in)** | ✅ | `student-data-test` (45 checks) |
+| **Bulk contact edit — one button for a whole class** | ✅ | `student-data-test` |
+| **Student list / monthly attendance / message Excel files** | ✅ | `student-data-test`, workbooks opened and asserted |
 | **Day grid + final status + Excel export** | ✅ | `quick-test` |
 | **School day / periods admin** | ✅ | `period-test` |
 | Observations | ✅ | `ui-test` |
@@ -67,6 +70,68 @@ npx tsc --noEmit      →   clean
 npm run build         →   succeeds
 docker build          →   succeeds, 474 MB, runs as uid 1001
 ```
+
+### Test results, 2026-09-06 — student data added
+
+Same discipline: run everything against the **production build**, not the dev
+server. The suite below was run against `next build` + `next start`, with a real
+`AUTH_SECRET`, on PostgreSQL 16.
+
+```
+                              production build
+npm run test              →   4/4      (rate limiting)
+npm run test:i18n         →   11/11    (dictionaries in step, 578 keys)
+npm run test:contact      →   7/7
+bash scripts/smoke.sh     →   matrix correct   (7 roles × 16 pages)
+npm run test:ui           →   40/40
+npm run test:periods      →   16/16
+npm run test:quick        →   24/24
+npm run test:student-data →   45/45
+npx tsc --noEmit          →   clean
+npm run build             →   succeeds
+```
+
+`test:ui` reported 39/40 on one run and 40/40 on the three runs after it, with
+no failing check named in the output that was kept. It was not reproduced and
+the cause is not known — recorded here rather than rounded up to green.
+
+### What the review caught after the suite was already green
+
+An independent review of the diff found six real defects that 40 passing checks
+had not. None of them was an authorisation hole — the scoping held up — but
+four were things a supervisor would have hit in the first week:
+
+| | |
+|---|---|
+| `<Workspace>` had no `key` | Switching class kept the previous class's ticked students, so an export posted class A's student ids against class B's id and returned an **empty workbook** while the header still read "5 of 30 selected". |
+| The "show one student" filter unmounted rows | The contact inputs are uncontrolled, so narrowing the table to check one student **threw away every unsaved edit** in the other thirty-four. The filter now hides rows instead of removing them. |
+| Deactivating a supervisor mid-session looped | The entry page checked only the token signature and sent them to the workspace, which re-read the person and sent them back: `ERR_TOO_MANY_REDIRECTS` until the 8-hour cookie expired. `/quick` had the same shape and is fixed with it. |
+| Clearing a PIN did not revoke a live session | An administrator is told they have "turned it off", but a device already holding a token kept reading **and writing** the contact database for up to eight hours. `findSupervisor` now requires the PIN on every request. |
+| An expired session turned an export click into a blank page | The exports are form navigations, so a 401 body replaced the page and took the open class and typed message with it. They now redirect to the sign-in step. |
+| `latestNotes` was unbounded | It read every observation ever written about the exported students to keep one row each, and grew every year the school runs. Now bounded to the current academic year. |
+
+All six are fixed and all six now have a check that fails without the fix.
+
+One further rule was added by re-reading the diff before that review, because
+it was missing: the whole-class save had **no length ceiling** on the
+four contact fields, where the signed-in form has capped them at 40 and 200
+characters all along. Postgres `text` has no length of its own, so a crafted
+post could write as much as the 2 MB action body allows into a phone number.
+The two write paths now share one `CONTACT_LIMITS`, and a check exercises the
+server rule with the browser's own `maxlength` and validation removed first.
+
+Three checks in `student-data-test` were rewritten during the run because the
+first versions could not fail:
+
+- comparing a student's absence total against the database passed 0 against 0,
+  so the test now **plants two absences** and asserts both the total and the day
+  cell;
+- the "a forged student id exports nothing" check inherited a still-ticked
+  checkbox and passed for the wrong reason;
+- the bad-email check never reached the server at all, because `type="email"`
+  made the browser refuse the submit. It now turns the browser's own validation
+  off first, so what is under test is the **server** refusing — which is the
+  only version that means anything against a crafted post.
 
 ---
 

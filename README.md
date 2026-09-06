@@ -97,6 +97,19 @@ and observations so the dashboards are not empty.
   in the app. It is opt-in per teacher (an administrator sets the PIN on their
   account), rate limited per teacher and per address, and "Finish" clears the
   device. Every row still records who took it.
+- **Student data** (`/student-data`, linked from the login page) is the
+  supervisor's way in, and the second page in the app that needs no email
+  login. Pick your name, type your PIN, and you get the classes assigned to
+  you: every student's three phone numbers and email address, editable for the
+  whole class **with one button**, plus three Excel files — the student list
+  (No., number, student, name, class, the three phones, email, latest
+  observation), the monthly attendance table (a sheet per month, a column per
+  day, each student's absence total) and the message file (two columns: phone
+  and message text, personalised with the child's name or the same for
+  everybody). Before the PIN the page shows **only supervisor names**. The token
+  is its own cookie with its own audience — a quick-attendance token does not
+  open it, and it opens nothing else. Every save and every export is written to
+  the history.
 - **Period reports** (`/period-reports`) aggregate any range three ways — by
   period, by period and class, and by day and period — over one class or several
   at once, and export as a real four-sheet Excel workbook.
@@ -139,6 +152,7 @@ npm run test:i18n                # the two dictionaries agree
 npm run test:ui                  # drives the real UI in Chromium end to end
 npm run test:periods             # attendance by period, end to end
 npm run test:quick               # quick attendance, incl. what it refuses
+npm run test:student-data        # student data, incl. what it refuses
 npx tsx scripts/dev-token.ts <email>   # mint a session cookie for curl
 npm run db:sync-access           # grant a newly added module on an existing DB
 ```

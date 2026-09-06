@@ -73,6 +73,22 @@ export function formatDate(date: Date, locale?: string): string {
   });
 }
 
+/**
+ * "September 2026" / "سبتمبر 2026" — for the month pickers.
+ *
+ * They are <select>s rather than <input type="month">: the native control
+ * renders in the *browser's* locale rather than the page's, so an Arabic page
+ * showed English month names, and Firefox has no month input at all and falls
+ * back to a free-text box that accepts anything.
+ */
+export function formatMonthName(date: Date, locale?: string): string {
+  return date.toLocaleDateString(intlLocale(locale), {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 export function formatShortDate(date: Date, locale?: string): string {
   return date.toLocaleDateString(intlLocale(locale), {
     day: "2-digit",

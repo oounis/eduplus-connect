@@ -14,6 +14,7 @@ const ACTION_TONES: Record<string, string> = {
   ASSIGN: "bg-violet-50 text-violet-700",
   RESET: "bg-amber-50 text-amber-700",
   IMPORT: "bg-brand-50 text-brand-700",
+  EXPORT: "bg-ink-100 text-ink-700",
 };
 
 function when(at: Date): string {
