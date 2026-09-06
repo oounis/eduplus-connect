@@ -10,7 +10,7 @@
  * Like the period suite, it makes itself a live period so it is deterministic
  * whatever time it runs, and puts the timetable back afterwards.
  */
-import { chromium } from "playwright";
+import { launchBrowser } from "./browser";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { formatHHMM, schoolClock, SCHOOL_TIMEZONE } from "../src/lib/school-time";
@@ -52,7 +52,7 @@ async function main() {
     where: { teachers: { none: { userId: teacher.id } } },
   });
 
-  const browser = await chromium.launch();
+  const browser = await launchBrowser();
 
   try {
     // -- 1. The public page shows names, and nothing else ------------------

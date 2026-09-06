@@ -4,7 +4,9 @@
  *
  *   npx tsx scripts/ui-test.ts [base-url]
  */
-import { chromium, type Page } from "playwright";
+import { type Page } from "playwright";
+import type { Browser } from "playwright";
+import { launchBrowser } from "./browser";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { today } from "../src/lib/dates";
@@ -36,7 +38,7 @@ function todayKey(): Date {
  * labels — without pinning, every text selector here would go looking for a
  * string the page no longer renders.
  */
-async function newPage(browser: Awaited<ReturnType<typeof chromium.launch>>) {
+async function newPage(browser: Browser) {
   const page = await browser.newPage();
   await page.context().addCookies([
     { name: "eduplus_locale", value: "en", url: BASE },
@@ -90,7 +92,7 @@ async function download(page: Page, url: string) {
 }
 
 async function main() {
-  const browser = await chromium.launch();
+  const browser = await launchBrowser();
 
   // -- 1. Supervisor logs in and takes a register --------------------------
   console.log("\nSupervisor: login → take attendance");

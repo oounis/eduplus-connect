@@ -9,7 +9,8 @@
  * minute, parks the seeded ones for the duration, and puts everything back
  * afterwards — so it is deterministic at 3am and at 9am alike, and repeatable.
  */
-import { chromium, type BrowserContext } from "playwright";
+import { type BrowserContext } from "playwright";
+import { launchBrowser } from "./browser";
 import { PrismaClient } from "@prisma/client";
 import { schoolClock, formatHHMM, SCHOOL_TIMEZONE } from "../src/lib/school-time";
 import { toDayKey } from "../src/lib/dates";
@@ -76,7 +77,7 @@ async function main() {
     },
   });
 
-  const browser = await chromium.launch();
+  const browser = await launchBrowser();
   const today = toDayKey(clock.dateISO);
 
   try {

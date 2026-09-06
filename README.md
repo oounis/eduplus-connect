@@ -161,6 +161,19 @@ The browser tests pin the interface to English with the `eduplus_locale`
 cookie, because the app now opens in Arabic and every text selector would
 otherwise be looking for a string the page does not render.
 
+**Running the browser suites inside an agent sandbox.** Chromium sandboxes its
+own renderers by creating a user namespace, and a CLI that runs its tools inside
+a sandbox of its own — Codex uses seccomp + Landlock — blocks that syscall, so
+Chromium dies at startup with *"Failed to move to new namespace … Operation not
+permitted"*. Nothing is wrong with the tests or the install: the outer sandbox
+will not let the inner one exist. Every suite launches through
+`scripts/browser.ts`, which tries the sandbox, falls back once to
+`--no-sandbox`, and says so on stderr — so this needs no configuration either
+way. `PLAYWRIGHT_NO_SANDBOX=1` skips straight to the fallback,
+`PLAYWRIGHT_NO_SANDBOX=0` forbids it and lets the real error surface. The flag
+is safe here because this browser only ever opens our own app on localhost;
+do not copy it into anything that opens pages you did not write.
+
 Both `smoke.sh` and `ui-test.ts` judge a refusal by what the page *shows*, not
 by its status code. A production server answers `redirect("/denied")` with a
 307 and `notFound()` with a 404, but the dev server has already started

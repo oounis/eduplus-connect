@@ -14,7 +14,8 @@
  * production build the session cookie is Secure and the request context will
  * not send it over plain http, which reports four working exports as broken.
  */
-import { chromium, type Download, type Page } from "playwright";
+import { type Download, type Page } from "playwright";
+import { launchBrowser } from "./browser";
 import { PrismaClient } from "@prisma/client";
 import ExcelJS from "exceljs";
 import { toISODate } from "../src/lib/dates";
@@ -135,7 +136,7 @@ async function main() {
   // Kept so the "clearing the PIN" check can put it back exactly as it was.
   const pinHash = withPin.quickPin;
 
-  const browser = await chromium.launch();
+  const browser = await launchBrowser();
 
   try {
     // -- 1. What a stranger can see ---------------------------------------
