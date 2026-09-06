@@ -40,7 +40,7 @@ can be done without hardware is done.
 | Daily attendance register | ✅ | `ui-test` |
 | **Attendance by period** | ✅ | `period-test` (16 checks) |
 | **Quick attendance (PIN, no full sign-in)** | ✅ | `quick-test` (24 checks) |
-| **Student data (supervisor, no full sign-in)** | ✅ | `student-data-test` (48 checks) |
+| **Student data (supervisor, no full sign-in)** | ✅ | `student-data-test` (49 checks) |
 | **Bulk contact edit — one button for a whole class** | ✅ | `student-data-test` |
 | **Student list / monthly attendance / message Excel files** | ✅ | `student-data-test`, workbooks opened and asserted |
 | **Day grid + final status + Excel export** | ✅ | `quick-test` |
@@ -86,7 +86,7 @@ bash scripts/smoke.sh     →   matrix correct   (7 roles × 16 pages)
 npm run test:ui           →   40/40
 npm run test:periods      →   16/16
 npm run test:quick        →   24/24
-npm run test:student-data →   48/48
+npm run test:student-data →   49/49
 npx tsc --noEmit          →   clean
 npm run build             →   succeeds
 ```
@@ -123,6 +123,22 @@ rather than exposure, but a 500 is the wrong answer and it fills the log for
 anything that pokes the URL. The body is now parsed in one place, a body that
 is not a form is treated as an empty one, and all three routes are checked with
 a bodyless POST.
+
+The same probe found a second one behind it. With the 500 gone, the redirect's
+`Location` came back as **`https://0.0.0.0:3100/student-data`**: the only origin
+the container knows is the address it binds to, and behind Traefik that is not
+the address anybody asked for. The test had passed on localhost, where that
+origin happens to be reachable. The Location is now relative, which the client
+resolves against the URL it actually requested — correct however the app is
+fronted, and needing no trust in a forwarded header. The check now asserts the
+Location starts with `/`, so it means the same thing on a laptop and on the
+real host.
+
+**Both were found by probing the deployed site, not by the suite.** Neither
+exposed anything — both requests carry no session and could only ever have been
+refused — but "green in dev is not evidence" earned its place in this file
+again, and this time the production build was not enough either: it took the
+production *deployment*.
 
 One further rule was added by re-reading the diff before that review, because
 it was missing: the whole-class save had **no length ceiling** on the

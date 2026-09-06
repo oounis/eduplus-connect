@@ -72,9 +72,20 @@ export async function resolveExportScope(
    * kinder and no less strict — nothing is served either way.
    *
    * 303, so the browser follows it with a GET rather than re-posting.
+   *
+   * The Location is RELATIVE, and deliberately so. `NextResponse.redirect`
+   * needs an absolute URL, and the only origin available inside the container
+   * is the address it binds to — behind Traefik that is 0.0.0.0:3100, which is
+   * what production actually sent before this: `https://0.0.0.0:3100/...`, a
+   * URL no browser can follow. A relative Location is resolved by the client
+   * against the URL it asked for, which is the public one, so this is correct
+   * however the app is fronted and needs no trust in a forwarded header.
    */
   const bounce = (to: string) =>
-    NextResponse.redirect(new URL(to, request.nextUrl.origin), 303);
+    new NextResponse(null, {
+      status: 303,
+      headers: { Location: to, "Cache-Control": "no-store" },
+    });
 
   const jar = await cookies();
   const session = await verifyDataSession(jar.get(DATA_COOKIE)?.value);

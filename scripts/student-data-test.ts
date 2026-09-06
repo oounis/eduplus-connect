@@ -195,12 +195,28 @@ async function main() {
       `${BASE}/student-data/export/students`,
       { form: { classId: myClass.id, scope: "class" }, maxRedirects: 0 },
     );
+    const anonLocation = anonExport.headers()["location"] ?? "";
     check(
       "the student export serves nothing without a session",
       anonExport.status() === 303 &&
-        (anonExport.headers()["location"] ?? "").endsWith("/student-data") &&
         !(anonExport.headers()["content-type"] ?? "").includes("spreadsheet"),
-      `HTTP ${anonExport.status()} -> ${anonExport.headers()["location"] ?? "(none)"}`,
+      `HTTP ${anonExport.status()} -> ${anonLocation || "(none)"}`,
+    );
+    /*
+     * The Location has to be relative.
+     *
+     * Behind a proxy the only origin the container knows is the one it binds
+     * to, so an absolute redirect built from it went out as
+     * `https://0.0.0.0:3100/student-data` in production — a 303 to nowhere.
+     * A relative Location is resolved against the URL the client asked for,
+     * which is the public one. Asserting "starts with /" is what makes this
+     * check mean the same thing on localhost and on the real host.
+     */
+    check(
+      "and points somewhere a browser can actually follow",
+      anonLocation.startsWith("/student-data") &&
+        !anonLocation.includes("0.0.0.0"),
+      anonLocation || "(none)",
     );
 
     /*
