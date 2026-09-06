@@ -40,7 +40,7 @@ can be done without hardware is done.
 | Daily attendance register | ✅ | `ui-test` |
 | **Attendance by period** | ✅ | `period-test` (16 checks) |
 | **Quick attendance (PIN, no full sign-in)** | ✅ | `quick-test` (24 checks) |
-| **Student data (supervisor, no full sign-in)** | ✅ | `student-data-test` (45 checks) |
+| **Student data (supervisor, no full sign-in)** | ✅ | `student-data-test` (48 checks) |
 | **Bulk contact edit — one button for a whole class** | ✅ | `student-data-test` |
 | **Student list / monthly attendance / message Excel files** | ✅ | `student-data-test`, workbooks opened and asserted |
 | **Day grid + final status + Excel export** | ✅ | `quick-test` |
@@ -86,7 +86,7 @@ bash scripts/smoke.sh     →   matrix correct   (7 roles × 16 pages)
 npm run test:ui           →   40/40
 npm run test:periods      →   16/16
 npm run test:quick        →   24/24
-npm run test:student-data →   45/45
+npm run test:student-data →   48/48
 npx tsc --noEmit          →   clean
 npm run build             →   succeeds
 ```
@@ -111,6 +111,18 @@ four were things a supervisor would have hit in the first week:
 | `latestNotes` was unbounded | It read every observation ever written about the exported students to keep one row each, and grew every year the school runs. Now bounded to the current academic year. |
 
 All six are fixed and all six now have a check that fails without the fix.
+
+### And one the tests could not have found, because production found it first
+
+The very first read-only probe of the deployed site — `curl -X POST` at
+`/student-data/export/students` with no body — returned **500** where the same
+request from the page returned a redirect. `request.formData()` throws on a
+request whose body is not a form, and every check in the suite had posted a
+well-formed one. Nothing was ever served to that request, so it was noise
+rather than exposure, but a 500 is the wrong answer and it fills the log for
+anything that pokes the URL. The body is now parsed in one place, a body that
+is not a form is treated as an empty one, and all three routes are checked with
+a bodyless POST.
 
 One further rule was added by re-reading the diff before that review, because
 it was missing: the whole-class save had **no length ceiling** on the

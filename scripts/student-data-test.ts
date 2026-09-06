@@ -203,6 +203,27 @@ async function main() {
       `HTTP ${anonExport.status()} -> ${anonExport.headers()["location"] ?? "(none)"}`,
     );
 
+    /*
+     * A bare POST with no body at all.
+     *
+     * This one was found in production, not here: every check above posts a
+     * well-formed body, and `request.formData()` THROWS on a request that has
+     * none — so `curl -X POST` returned 500 where the page returned a redirect.
+     * Nothing was ever served, but a 500 is the wrong answer and fills the log.
+     */
+    for (const route of ["students", "attendance", "messages"]) {
+      const bare = await anon.request.post(
+        `${BASE}/student-data/export/${route}`,
+        { maxRedirects: 0 },
+      );
+      check(
+        `a bodyless POST to the ${route} export is refused, not a 500`,
+        bare.status() === 303 &&
+          !(bare.headers()["content-type"] ?? "").includes("spreadsheet"),
+        `HTTP ${bare.status()}`,
+      );
+    }
+
     // -- 3. A quick-attendance token is not a student-data token -----------
     const teacher = await prisma.user.findFirst({
       where: { role: "TEACHER", isActive: true, quickPin: { not: null } },

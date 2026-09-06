@@ -19,9 +19,7 @@ import { auditExport, resolveExportScope } from "../scope";
  */
 export async function POST(request: NextRequest) {
   const { locale, t } = await getI18n();
-  const formData = await request.formData();
-
-  const resolved = await resolveExportScope(request, formData, {
+  const resolved = await resolveExportScope(request, {
     thisClass: (name) => name,
     allClasses: t("sd.scopeAll"),
   });

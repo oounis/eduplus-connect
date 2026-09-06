@@ -26,6 +26,8 @@ import {
  * nothing rather than that student.
  */
 export type ExportScope = {
+  /** The parsed body, for the fields each export needs beyond the scope. */
+  formData: FormData;
   supervisor: DataSupervisor;
   scope: DataScope;
   /** The classes this export covers: one, or all of the supervisor's. */
@@ -35,11 +37,33 @@ export type ExportScope = {
   label: string;
 };
 
+/**
+ * The body, or an empty one.
+ *
+ * `request.formData()` THROWS on a request whose body is not a form — no body
+ * at all, or the wrong content type. Left to propagate that is a 500, which is
+ * both the wrong answer (nothing was wrong with the server) and noise in the
+ * logs for anything that pokes the URL. Found in production: a bare
+ * `curl -X POST` returned 500 where the same request from the page returned a
+ * redirect, because every test had posted a well-formed body.
+ *
+ * An empty form carries no session and no class, so it falls through to the
+ * same refusal as any other request without one.
+ */
+async function readForm(request: NextRequest): Promise<FormData> {
+  try {
+    return await request.formData();
+  } catch {
+    return new FormData();
+  }
+}
+
 export async function resolveExportScope(
   request: NextRequest,
-  formData: FormData,
   labels: { thisClass: (name: string) => string; allClasses: string },
 ): Promise<{ ok: false; response: NextResponse } | { ok: true } & ExportScope> {
+  const formData = await readForm(request);
+
   /*
    * These are form *navigations*, not fetches, so whatever comes back replaces
    * the page. A bare 401 body therefore reads as a blank white screen with two
@@ -90,7 +114,7 @@ export async function resolveExportScope(
     scope.classes.find((klass) => klass.id === scope.selectedClassId)?.name ?? "";
   const label = wantsAll ? labels.allClasses : labels.thisClass(selectedName);
 
-  return { ok: true, supervisor, scope, classIds, students, label };
+  return { ok: true, formData, supervisor, scope, classIds, students, label };
 }
 
 /** One line of history per export: who took what, and how many rows. */
