@@ -9,6 +9,25 @@ Arabic by default, English one click away, right-to-left throughout.
 operations runbook, capacity, and an honest
 [status and roadmap](docs/06-status.md).
 
+## Where this sits
+
+```
+KOGIA GROUP → KOGIA EDUCATION → Educational Operations → EduPlus Connect
+```
+
+A product of **[Kogia Education](https://github.com/oounis/kogia-group/blob/main/architecture/divisions/education.md)**,
+one of the five domains defined in the
+[Kogia Group architecture](https://github.com/oounis/kogia-group/tree/main/architecture),
+adopted 2026-09-12.
+
+EduPlus Connect is the division's only product in **real daily school use**, which
+makes it the most reliable source of truth about what schools actually need — ahead
+of any research or assumption.
+
+Its long-term connection to the ecosystem is the *Learning Passport*: a child's
+record across years rather than one term, which feeds
+[Kogia Skills](https://github.com/oounis/kogia-group/blob/main/architecture/divisions/skills.md).
+
 ## Stack
 
 Next.js 15 (App Router, Server Actions) · React 19 · Prisma 6 ·
