@@ -13,6 +13,9 @@ export type ImportRow = {
   dateOfBirth: string | null;
   className: string;
   parentEmail: string;
+  phone: string;
+  phone2: string;
+  phone3: string;
   problem: string | null;
 };
 
@@ -28,7 +31,35 @@ export type ImportState = {
   };
 };
 
-const HEADERS = ["firstname", "lastname", "code", "dateofbirth", "class", "parentemail"];
+const HEADERS = [
+  "firstname",
+  "lastname",
+  "code",
+  "dateofbirth",
+  "class",
+  "parentemail",
+  "phone",
+  "phone2",
+  "phone3",
+];
+
+/**
+ * The three guardian numbers a school office already keeps per child, under the
+ * spellings an office actually types. `phone1` is the common way to write the
+ * first of three; the header reader has already stripped spaces, dashes and
+ * underscores and lowercased, so "Phone 2" and "PHONE_2" arrive here as
+ * "phone2".
+ */
+const PHONE_ALIASES: Record<"phone" | "phone2" | "phone3", string[]> = {
+  phone: ["phone", "phone1", "mobile", "tel"],
+  phone2: ["phone2", "mobile2", "tel2"],
+  phone3: ["phone3", "mobile3", "tel3"],
+};
+
+/** Keeps digits and the punctuation a real number uses; drops the rest. */
+function normalisePhone(value: string): string {
+  return value.trim().replace(/[^\d+()\s-]/g, "").replace(/\s+/g, " ").trim();
+}
 
 /** Minimal RFC 4180 reader — quoted fields, doubled quotes, CRLF or LF. */
 function parseCsv(text: string): string[][] {
@@ -106,6 +137,14 @@ export async function previewImport(
     const index = header.indexOf(key);
     return index === -1 ? "" : (row[index] ?? "").trim();
   };
+  // The first spelling present in the file wins, so a sheet carrying both
+  // "phone" and "mobile" does not silently prefer the empty one.
+  const phoneAt = (row: string[], field: keyof typeof PHONE_ALIASES) => {
+    for (const alias of PHONE_ALIASES[field]) {
+      if (header.includes(alias)) return normalisePhone(at(row, alias));
+    }
+    return "";
+  };
 
   const [classes, parents, existingCodes] = await Promise.all([
     prisma.class.findMany({ select: { id: true, name: true } }),
@@ -128,6 +167,9 @@ export async function previewImport(
     const rawDate = at(row, "dateofbirth");
     const className = at(row, "class");
     const parentEmail = at(row, "parentemail").toLowerCase();
+    const phone = phoneAt(row, "phone");
+    const phone2 = phoneAt(row, "phone2");
+    const phone3 = phoneAt(row, "phone3");
 
     let problem: string | null = null;
     if (!firstName || !lastName) problem = "first and last name are required";
@@ -151,6 +193,9 @@ export async function previewImport(
       dateOfBirth: rawDate ? normaliseDate(rawDate) : null,
       className,
       parentEmail,
+      phone,
+      phone2,
+      phone3,
       problem,
     });
   }
@@ -201,6 +246,11 @@ export async function confirmImport(
           parentId: row.parentEmail
             ? (parentByEmail.get(row.parentEmail) ?? null)
             : null,
+          // Blank stays null rather than an empty string, so the message export
+          // counts a child with no number as missing one instead of texting "".
+          phone: row.phone || null,
+          phone2: row.phone2 || null,
+          phone3: row.phone3 || null,
         },
       }),
     ),

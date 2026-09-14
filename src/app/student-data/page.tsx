@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { getI18n } from "@/lib/locale";
 import { DATA_COOKIE, verifyDataSession } from "@/lib/data-session";
 import { STAFF_PIN_LENGTH } from "@/lib/staff-pin";
-import { findSupervisor, listPinSupervisors } from "@/lib/student-data";
+import { findSupervisor, listSupervisors } from "@/lib/student-data";
 import { KogiaTile } from "@/components/kogia";
 import DataSignInForm from "./sign-in-form";
 
@@ -41,11 +41,15 @@ export default async function StudentDataPage({
     redirect("/student-data/classes");
   }
 
-  const supervisors = await listPinSupervisors();
+  const supervisors = await listSupervisors();
 
-  // An id in the URL only counts if it is one of the supervisors above, so a
-  // guessed or stale id falls back to the list rather than naming somebody.
-  const chosen = supervisors.find((s) => s.id === params.supervisor) ?? null;
+  // An id in the URL only counts if it is one of the supervisors above and that
+  // supervisor has a PIN, so a guessed or stale id — or the name of somebody an
+  // administrator has not set up yet — falls back to the list rather than
+  // opening a PIN box that no PIN can answer.
+  const chosen =
+    supervisors.find((s) => s.id === params.supervisor && s.hasPin) ?? null;
+  const waiting = supervisors.filter((s) => !s.hasPin).length;
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-5 py-10">
@@ -96,23 +100,47 @@ export default async function StudentDataPage({
                   {t("sd.noSupervisors")}
                 </p>
               ) : (
-                <ul className="mt-5 space-y-2">
-                  {supervisors.map((supervisor) => (
-                    <li key={supervisor.id}>
-                      <Link
-                        href={`/student-data?supervisor=${supervisor.id}`}
-                        className="btn-secondary flex w-full items-center justify-between py-3 text-start"
-                      >
-                        <span className="font-medium">
-                          {supervisor.firstName} {supervisor.lastName}
-                        </span>
-                        <span aria-hidden="true" className="text-ink-400">
-                          {"›"}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  <ul className="mt-5 space-y-2">
+                    {supervisors.map((supervisor) =>
+                      supervisor.hasPin ? (
+                        <li key={supervisor.id}>
+                          <Link
+                            href={`/student-data?supervisor=${supervisor.id}`}
+                            className="btn-secondary flex w-full items-center justify-between py-3 text-start"
+                          >
+                            <span className="font-medium">
+                              {supervisor.firstName} {supervisor.lastName}
+                            </span>
+                            <span aria-hidden="true" className="text-ink-400">
+                              {"›"}
+                            </span>
+                          </Link>
+                        </li>
+                      ) : (
+                        /* Named, so nobody wonders whether they were forgotten,
+                           but not a link: there is no PIN to answer with. */
+                        <li
+                          key={supervisor.id}
+                          aria-disabled="true"
+                          className="flex w-full items-center justify-between gap-3 rounded-lg border border-dashed border-ink-200 px-4 py-3 text-start"
+                        >
+                          <span className="font-medium text-ink-400">
+                            {supervisor.firstName} {supervisor.lastName}
+                          </span>
+                          <span className="badge shrink-0 bg-amber-50 text-amber-700">
+                            {t("sd.noPinYet")}
+                          </span>
+                        </li>
+                      ),
+                    )}
+                  </ul>
+                  {waiting > 0 && (
+                    <p className="mt-3 text-xs text-ink-500">
+                      {t("sd.pinHintAdmin")}
+                    </p>
+                  )}
+                </>
               )}
             </>
           )}

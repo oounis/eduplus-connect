@@ -30,13 +30,14 @@ export type ImportLabels = {
   born: string;
   klass: string;
   parent: string;
+  phones: string;
   status: string;
   ready: string;
 };
 
-const SAMPLE = `firstName,lastName,code,dateOfBirth,class,parentEmail
-Yasmin,Haddad,,2015-04-23,Grade 5 - A,parent@eduplus.school
-Omar,Belhaj,STU-9001,12/09/2014,Grade 5 - A,
+const SAMPLE = `firstName,lastName,code,dateOfBirth,class,parentEmail,phone,phone2,phone3
+Yasmin,Haddad,,2015-04-23,Grade 5 - A,parent@eduplus.school,+974 5512 3456,,
+Omar,Belhaj,STU-9001,12/09/2014,Grade 5 - A,,+974 5590 1122,+974 3312 8899,
 `;
 
 /**
@@ -76,7 +77,8 @@ export default function ImportPanel({ labels }: { labels: ImportLabels }) {
             id="csv"
             name="csv"
             rows={7}
-            className="input font-mono text-xs"
+            dir="ltr"
+            className="input text-start font-mono text-xs"
             placeholder={SAMPLE}
             defaultValue={state.preview?.csv}
             required
@@ -84,8 +86,10 @@ export default function ImportPanel({ labels }: { labels: ImportLabels }) {
           <p className="mt-1.5 text-xs text-ink-500">
             {labels.columnsLead} <code>firstName</code> {labels.and}{" "}
             <code>lastName</code> {labels.areRequired} <code>code</code>,{" "}
-            <code>dateOfBirth</code>, <code>class</code> {labels.and}{" "}
-            <code>parentEmail</code> {labels.areOptional}
+            <code dir="ltr">dateOfBirth</code>, <code dir="ltr">class</code>,{" "}
+            <code dir="ltr">parentEmail</code>, <code dir="ltr">phone</code>,{" "}
+            <code dir="ltr">phone2</code> {labels.and}{" "}
+            <code dir="ltr">phone3</code> {labels.areOptional}
           </p>
         </div>
         <input type="hidden" name="intent" value="preview" />
@@ -144,6 +148,7 @@ export default function ImportPanel({ labels }: { labels: ImportLabels }) {
                   <th>{labels.born}</th>
                   <th>{labels.klass}</th>
                   <th>{labels.parent}</th>
+                  <th>{labels.phones}</th>
                   <th>{labels.status}</th>
                 </tr>
               </thead>
@@ -158,6 +163,11 @@ export default function ImportPanel({ labels }: { labels: ImportLabels }) {
                     <td className="text-xs text-ink-500">{row.dateOfBirth ?? "—"}</td>
                     <td className="text-xs text-ink-600">{row.className || "—"}</td>
                     <td className="text-xs text-ink-600">{row.parentEmail || "—"}</td>
+                    <td className="text-xs text-ink-600" dir="ltr">
+                      {[row.phone, row.phone2, row.phone3]
+                        .filter(Boolean)
+                        .join(" · ") || "—"}
+                    </td>
                     <td>
                       {row.problem ? (
                         <span className="badge bg-red-50 text-red-700">{row.problem}</span>

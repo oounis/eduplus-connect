@@ -146,6 +146,7 @@ export default async function StudentsPage({
                 born: t("stu.born"),
                 klass: t("common.class"),
                 parent: t("common.parent"),
+                phones: t("stu.phones"),
                 status: t("common.status"),
                 ready: t("stu.ready"),
               }}

@@ -23,17 +23,31 @@ export type DataSupervisor = {
   lastName: string;
 };
 
+/** A supervisor as the sign-in list shows them: named, and ready or not. */
+export type ListedSupervisor = DataSupervisor & { hasPin: boolean };
+
 /**
- * The supervisors offered on the public page: active, and given a PIN by an
- * administrator. A supervisor without one does not appear, so this way in is
- * opt-in per person exactly as quick attendance is.
+ * Every active supervisor, each marked with whether an administrator has given
+ * them a PIN yet.
+ *
+ * All of them are listed, not only the ones already set up. A supervisor who
+ * cannot find their own name has no way to tell whether they were forgotten or
+ * the page is broken, and the administrator has nowhere to see who is still
+ * waiting. Listing them says which it is. The PIN is still what opens anything:
+ * a name without one is shown as not yet activated and cannot be chosen, and
+ * `findSupervisor` below keeps refusing every request behind it.
  */
-export async function listPinSupervisors(): Promise<DataSupervisor[]> {
-  return prisma.user.findMany({
-    where: { role: "SUPERVISOR", isActive: true, quickPin: { not: null } },
+export async function listSupervisors(): Promise<ListedSupervisor[]> {
+  const rows = await prisma.user.findMany({
+    where: { role: "SUPERVISOR", isActive: true },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-    select: { id: true, firstName: true, lastName: true },
+    select: { id: true, firstName: true, lastName: true, quickPin: true },
   });
+  // The PIN itself never leaves this function — only whether there is one.
+  return rows.map(({ quickPin, ...rest }) => ({
+    ...rest,
+    hasPin: quickPin !== null,
+  }));
 }
 
 /**
