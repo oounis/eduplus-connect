@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { useRouter } from "next/navigation";
 import { SubmitButton } from "@/components/action-form";
 import { showToast } from "@/components/toast";
 import { fill } from "@/lib/i18n";
@@ -128,7 +127,39 @@ export default function Workspace({
   };
   const [fields, setFields] = useState<PhoneField[]>(["phone"]);
 
-  const router = useRouter();
+  /**
+   * The contact boxes are controlled, and this is the state behind them.
+   *
+   * They used to be uncontrolled with a `defaultValue`, which meant the page
+   * could not show a saved number without a full reload — and any attempt to
+   * fix that by re-rendering from the server threw away whatever the
+   * supervisor had typed since, because React does not own the value and a
+   * replaced subtree takes the DOM with it. Measured: a number typed into the
+   * next row vanished and the old server value took its place.
+   *
+   * Owning the values here settles both. What is on screen is what was saved,
+   * the moment it is saved, and nothing the server sends can overwrite a box
+   * somebody is still filling in.
+   */
+  const [contacts, setContacts] = useState(() =>
+    Object.fromEntries(
+      students.map((student) => [
+        student.id,
+        {
+          phone: student.phone ?? "",
+          phone2: student.phone2 ?? "",
+          phone3: student.phone3 ?? "",
+          email: student.email ?? "",
+        },
+      ]),
+    ),
+  );
+
+  const setContact = (id: string, field: string, value: string) =>
+    setContacts((previous) => ({
+      ...previous,
+      [id]: { ...previous[id], [field]: value },
+    }));
 
   const [state, action] = useActionState<DataState, FormData>(
     async (previous, formData) => {
@@ -139,30 +170,10 @@ export default function Workspace({
       if (result.success) showToast(result.success, "success");
       else if (result.error) showToast(result.error, "error");
 
-      // Re-read the roster from the database. Without this the page keeps
-      // serving the numbers it was rendered with, so a supervisor who saved a
-      // phone saw the old one everywhere except the box they typed in, until
-      // they reloaded by hand. The toast is raised outside React's tree above,
-      // so refreshing this subtree cannot swallow it.
-      if (result.success) router.refresh();
       return result;
     },
     {},
   );
-
-  /**
-   * Changes whenever the server sends back different contact details, and is
-   * used as the key of the roster body.
-   *
-   * The inputs are uncontrolled, so a new `defaultValue` alone never reaches
-   * the DOM — React leaves a box the user has touched exactly as it is. Keying
-   * on the values themselves remounts the boxes when, and only when, the
-   * database actually said something different, which is what makes a saved
-   * number appear without a reload.
-   */
-  const rosterKey = students
-    .map((s) => [s.id, s.phone, s.phone2, s.phone3, s.email].join("\u0001"))
-    .join("\u0002");
 
   const toggle = (id: string) =>
     setSelected((previous) => {
@@ -257,7 +268,7 @@ export default function Workspace({
                   <th>{labels.colEmail}</th>
                 </tr>
               </thead>
-              <tbody key={rosterKey}>
+              <tbody>
                 {/*
                  * Every student is rendered, always. The filter only *hides*
                  * rows.
@@ -298,7 +309,10 @@ export default function Workspace({
                           name={`${field}:${student.id}`}
                           type="tel"
                           dir="ltr"
-                          defaultValue={student[field] ?? ""}
+                          value={contacts[student.id]?.[field] ?? ""}
+                          onChange={(event) =>
+                            setContact(student.id, field, event.target.value)
+                          }
                           maxLength={CONTACT_LIMITS[field]}
                           autoComplete="off"
                           className="input min-w-36"
@@ -310,7 +324,10 @@ export default function Workspace({
                         name={`email:${student.id}`}
                         type="email"
                         dir="ltr"
-                        defaultValue={student.email ?? ""}
+                        value={contacts[student.id]?.email ?? ""}
+                        onChange={(event) =>
+                          setContact(student.id, "email", event.target.value)
+                        }
                         maxLength={CONTACT_LIMITS.email}
                         autoComplete="off"
                         className="input min-w-52"

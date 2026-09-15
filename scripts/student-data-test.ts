@@ -84,7 +84,10 @@ async function main() {
 
   const roster = await prisma.student.findMany({
     where: { classId: myClass.id, isActive: true },
-    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    // The same order `loadRoster` uses, which is the order the rows appear in
+    // on the page: first name, then family name. Picking a row by index only
+    // means anything while these two agree.
+    orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
   });
   if (roster.length < 2) throw new Error("need at least two students to test with");
 
@@ -157,12 +160,35 @@ async function main() {
       `${offered} offered, ${withoutPin ? "1" : "0"} without a PIN in the database`,
     );
     if (withoutPin) {
+      // Named, deliberately. A supervisor who cannot find themselves in this
+      // list has no way to tell whether they were forgotten or the page is
+      // broken, and the administrator has nowhere to see who is still waiting
+      // for a PIN. What must not happen is that the name becomes a way in:
+      // it is text, not a link, and the PIN still guards everything behind it.
       const body = await anon.content();
       check(
-        "a supervisor with no PIN is not named",
-        !body.includes(withoutPin.lastName),
+        "a supervisor with no PIN is still named",
+        body.includes(withoutPin.lastName),
         withoutPin.lastName,
       );
+      const clickable = await anon
+        .locator(`a[href^="/student-data?supervisor=${withoutPin.id}"]`)
+        .count();
+      check(
+        "but they cannot be chosen",
+        clickable === 0,
+        `${clickable} links to them`,
+      );
+      // And a crafted URL naming them must not open a PIN box either.
+      const crafted = await stranger.newPage();
+      await crafted.goto(`${BASE}/student-data?supervisor=${withoutPin.id}`);
+      const askedForPin = await crafted.locator('input[name="pin"]').count();
+      check(
+        "a crafted URL does not open a PIN box for them",
+        askedForPin === 0,
+        `${askedForPin} PIN fields`,
+      );
+      await crafted.close();
     }
 
     // The whole reason the PIN exists.
@@ -542,7 +568,7 @@ async function main() {
 
       const sample = plantedFor;
       const sampleRow = monthRows.find(
-        (row) => row[2] === `${sample.lastName} ${sample.firstName}`,
+        (row) => row[2] === `${sample.firstName} ${sample.lastName}`,
       );
       const expectedAbsences = expected.get(sample.id) ?? 0;
       check(
