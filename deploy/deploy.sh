@@ -35,17 +35,35 @@ if [ "${BEFORE}" != "${AFTER}" ] && [ -z "${KOGIA_DEPLOY_REEXEC:-}" ]; then
   fi
 fi
 
-echo "==> 2/5  building image"
+echo "==> 2/5  building images"
 # Built here rather than pulled: one host, one operator, no registry to
 # authenticate against. When the second VPS arrives this becomes a push to
 # GHCR so both hosts run a byte-identical image.
-"${COMPOSE[@]}" build --quiet app1
+#
+# The migrate image is built too, and that is not optional. Compose reuses an
+# existing image for `run` without rebuilding it, so building only the app left
+# `prisma migrate deploy` executing an image from a previous deploy: it saw the
+# migration folder as it was when that image was built, reported "no pending
+# migrations", and exited 0. A new migration was silently skipped while the
+# deploy called itself a success. Both images come from the same Dockerfile, so
+# this costs one cached layer walk.
+"${COMPOSE[@]}" build --quiet app1 migrate
 
 echo "==> 3/5  applying migrations"
 # Deliberately before the new replicas start and while the old ones still
 # serve: a failed migration leaves the previous version running and healthy,
 # rather than a half-migrated database behind a new binary.
 "${COMPOSE[@]}" run --rm --no-deps migrate
+
+# Then ask Prisma whether anything is still pending. `migrate status` exits
+# non-zero when the database is behind the migration folder, so this needs no
+# output parsing — and it is the check that would have caught the deploy where
+# a stale migrate image reported success while skipping a migration entirely.
+if ! "${COMPOSE[@]}" run --rm --no-deps migrate npx prisma migrate status; then
+  echo "        !! the database is behind prisma/migrations"
+  echo "        !! refusing to roll replicas onto a schema that does not match"
+  exit 1
+fi
 
 echo "==> 4/5  rolling replicas"
 # One at a time. Traefik's health check pulls each container out of rotation
