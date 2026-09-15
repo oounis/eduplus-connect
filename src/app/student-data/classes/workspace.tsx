@@ -237,7 +237,7 @@ export default function Workspace({
                       {student.code}
                     </td>
                     <td className="whitespace-nowrap font-medium">
-                      {student.lastName} {student.firstName}
+                      {student.firstName} {student.lastName}
                     </td>
                     {(["phone", "phone2", "phone3"] as const).map((field) => (
                       <td key={field}>
