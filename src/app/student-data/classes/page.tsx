@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getI18n } from "@/lib/locale";
@@ -42,6 +43,14 @@ export default async function StudentDataClassesPage({
 
   const scope = await resolveDataScope(supervisor, params.classId);
   const months = await defaultMonthRange();
+
+  // Texts an administrator wrote for supervisors to reuse. Retired ones are
+  // kept in the database for the audit trail but must not be offered here.
+  const templates = await prisma.messageTemplate.findMany({
+    where: { isActive: true },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, title: true, body: true, mode: true },
+  });
   // Every month of the academic year, labelled in the interface language.
   const monthOptions = monthsBetween(months.earliest, months.latest).map(
     (month) => ({
@@ -184,7 +193,11 @@ export default async function StudentDataClassesPage({
                 msgBuild: t("sd.msgBuild"),
                 msgEmpty: t("sd.msgEmpty"),
                 exampleName: t("sd.exampleName"),
+                msgTemplate: t("sd.msgTemplate"),
+                msgTemplateNone: t("sd.msgTemplateNone"),
+                msgTemplateHint: t("sd.msgTemplateHint"),
               }}
+              templates={templates}
             />
           )}
         </>

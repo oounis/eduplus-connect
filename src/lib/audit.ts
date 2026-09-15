@@ -26,6 +26,7 @@ export const AUDIT_ENTITIES = [
   "period",
   "periodAttendance",
   "observation",
+  "messageTemplate",
 ] as const;
 export type AuditEntity = (typeof AUDIT_ENTITIES)[number];
 

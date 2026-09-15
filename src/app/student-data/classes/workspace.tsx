@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useRouter } from "next/navigation";
 import { SubmitButton } from "@/components/action-form";
 import { showToast } from "@/components/toast";
 import { fill } from "@/lib/i18n";
@@ -52,6 +53,17 @@ export type WorkspaceLabels = {
   msgBuild: string;
   msgEmpty: string;
   exampleName: string;
+  msgTemplate: string;
+  msgTemplateNone: string;
+  msgTemplateHint: string;
+};
+
+/** A ready-made text an administrator wrote for supervisors to reuse. */
+export type MessageTemplateOption = {
+  id: string;
+  title: string;
+  body: string;
+  mode: string;
 };
 
 /**
@@ -72,6 +84,7 @@ export default function Workspace({
   students,
   months,
   labels,
+  templates,
 }: {
   classId: string;
   students: RosterStudent[];
@@ -88,6 +101,7 @@ export default function Workspace({
     to: string;
   };
   labels: WorkspaceLabels;
+  templates: MessageTemplateOption[];
 }) {
   // Nothing ticked means "the whole class", which is what somebody who exports
   // without touching the boxes expects. An empty set is that state, so it is
@@ -96,7 +110,25 @@ export default function Workspace({
   const [filter, setFilter] = useState<string>("ALL");
   const [named, setNamed] = useState(true);
   const [text, setText] = useState("");
+  const [templateId, setTemplateId] = useState("");
+
+  /**
+   * Picking a template fills the box and sets the message type to match.
+   *
+   * It writes into the same free-text field rather than replacing it, so a
+   * supervisor can take the administrator's wording and still add a sentence
+   * of their own — which is what they were doing by hand before this existed.
+   */
+  const applyTemplate = (id: string) => {
+    setTemplateId(id);
+    const chosen = templates.find((template) => template.id === id);
+    if (!chosen) return;
+    setText(chosen.body);
+    setNamed(chosen.mode !== "GENERAL");
+  };
   const [fields, setFields] = useState<PhoneField[]>(["phone"]);
+
+  const router = useRouter();
 
   const [state, action] = useActionState<DataState, FormData>(
     async (previous, formData) => {
@@ -106,10 +138,31 @@ export default function Workspace({
       // which is how a save ends up invisible in a production build.
       if (result.success) showToast(result.success, "success");
       else if (result.error) showToast(result.error, "error");
+
+      // Re-read the roster from the database. Without this the page keeps
+      // serving the numbers it was rendered with, so a supervisor who saved a
+      // phone saw the old one everywhere except the box they typed in, until
+      // they reloaded by hand. The toast is raised outside React's tree above,
+      // so refreshing this subtree cannot swallow it.
+      if (result.success) router.refresh();
       return result;
     },
     {},
   );
+
+  /**
+   * Changes whenever the server sends back different contact details, and is
+   * used as the key of the roster body.
+   *
+   * The inputs are uncontrolled, so a new `defaultValue` alone never reaches
+   * the DOM — React leaves a box the user has touched exactly as it is. Keying
+   * on the values themselves remounts the boxes when, and only when, the
+   * database actually said something different, which is what makes a saved
+   * number appear without a reload.
+   */
+  const rosterKey = students
+    .map((s) => [s.id, s.phone, s.phone2, s.phone3, s.email].join("\u0001"))
+    .join("\u0002");
 
   const toggle = (id: string) =>
     setSelected((previous) => {
@@ -153,7 +206,7 @@ export default function Workspace({
                 <option value="ALL">{labels.allStudents}</option>
                 {students.map((student) => (
                   <option key={student.id} value={student.id}>
-                    {student.lastName} {student.firstName}
+                    {student.firstName} {student.lastName}
                   </option>
                 ))}
               </select>
@@ -204,7 +257,7 @@ export default function Workspace({
                   <th>{labels.colEmail}</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody key={rosterKey}>
                 {/*
                  * Every student is rendered, always. The filter only *hides*
                  * rows.
@@ -226,7 +279,7 @@ export default function Workspace({
                     <td>
                       <input
                         type="checkbox"
-                        aria-label={`${student.lastName} ${student.firstName}`}
+                        aria-label={`${student.firstName} ${student.lastName}`}
                         className="h-4 w-4 cursor-pointer accent-brand-600"
                         checked={selected.has(student.id)}
                         onChange={() => toggle(student.id)}
@@ -450,6 +503,30 @@ export default function Workspace({
               ))}
             </div>
           </fieldset>
+
+          {templates.length > 0 && (
+            <div className="max-w-md">
+              <label className="label" htmlFor="template">
+                {labels.msgTemplate}
+              </label>
+              <select
+                id="template"
+                className="select"
+                value={templateId}
+                onChange={(event) => applyTemplate(event.target.value)}
+              >
+                <option value="">{labels.msgTemplateNone}</option>
+                {templates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.title}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1.5 text-xs text-ink-500">
+                {labels.msgTemplateHint}
+              </p>
+            </div>
+          )}
 
           <div>
             <label className="label" htmlFor="text">

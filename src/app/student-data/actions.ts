@@ -177,7 +177,7 @@ export async function saveStudentContacts(
       next[field] = orNull(raw);
     }
 
-    const name = `${student.lastName} ${student.firstName}`;
+    const name = `${student.firstName} ${student.lastName}`;
 
     // Length before shape. Postgres `text` has no ceiling of its own, so
     // without this a crafted post writes as much as the 2 MB action body

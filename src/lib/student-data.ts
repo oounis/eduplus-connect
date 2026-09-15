@@ -152,8 +152,9 @@ export async function loadRoster(
     },
     orderBy: [
       { class: { name: "asc" } },
-      { lastName: "asc" },
+      // Ordered the way the roster is read: first name, then family name.
       { firstName: "asc" },
+      { lastName: "asc" },
     ],
     select: {
       id: true,
@@ -417,7 +418,7 @@ export function buildMonthlySheets({
       const row: Record<string, string | number> = {
         index: index + 1,
         className: student.className,
-        student: `${student.lastName} ${student.firstName}`,
+        student: `${student.firstName} ${student.lastName}`,
       };
       let absences = 0;
       for (const day of days) {
@@ -469,7 +470,7 @@ export function buildMessageRows(
   const skipped: RosterStudent[] = [];
 
   for (const student of students) {
-    const name = `${student.lastName} ${student.firstName}`.trim();
+    const name = `${student.firstName} ${student.lastName}`.trim();
     const message = options.named
       ? `${options.namedTemplate.replace("{name}", name)} ${options.text}`.trim()
       : options.text;

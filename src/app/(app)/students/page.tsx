@@ -79,12 +79,19 @@ export default async function StudentsPage({
             : t("students.assignedToYou")
         }
         actions={
-          <a
-            href={`/students/export${params.classId ? `?classId=${encodeURIComponent(params.classId)}` : ""}`}
-            className="btn-secondary btn-sm"
-          >
-            {t("action.exportExcel")}
-          </a>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Templates live behind the students module, so anybody who can
+                reach this page can reach them. */}
+            <Link href="/message-templates" className="btn-secondary btn-sm">
+              {t("mt.title")}
+            </Link>
+            <a
+              href={`/students/export${params.classId ? `?classId=${encodeURIComponent(params.classId)}` : ""}`}
+              className="btn-secondary btn-sm"
+            >
+              {t("action.exportExcel")}
+            </a>
+          </div>
         }
       />
 

@@ -326,3 +326,24 @@ model AuditEvent {
   @@index([entity, at])
   @@index([actorId])
 }
+
+/// A message an administrator writes once so supervisors can reuse it.
+///
+/// Supervisors reach the student-data page without an email login and cannot be
+/// trusted to compose an official message to families from scratch every time.
+/// The administrator writes the text; the supervisor picks it from a list. A
+/// NAMED template is prefixed with the child's name when the file is built, a
+/// GENERAL one is sent as written.
+model MessageTemplate {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  /// "NAMED" or "GENERAL" — which of the two message modes this text is for.
+  mode      String   @default("NAMED")
+  /// Retired templates stay for the audit trail but leave the supervisor's list.
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+}

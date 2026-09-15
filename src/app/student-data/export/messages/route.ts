@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       ],
       rows: skipped.map((student) => ({
         code: student.code,
-        student: `${student.lastName} ${student.firstName}`,
+        student: `${student.firstName} ${student.lastName}`,
         className: student.className,
       })),
     });
